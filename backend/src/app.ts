@@ -25,6 +25,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
     logger.info(`${req.method} ${req.path}`, {
         query: req.query,
         body: req.method === 'POST' ? req.body : undefined,
+        apiKey: req.headers['x-api-key'],
     });
     next();
 });
