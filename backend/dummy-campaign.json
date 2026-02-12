@@ -1,0 +1,22 @@
+[
+    {
+        "to": "+918086662026",
+        "templateName": "service",
+        "language": "en",
+        "header": null,
+        "body": {
+            "parameters": [
+                {
+                    "type": "text",
+                    "text": "John"
+                }
+            ]
+        },
+        "button": null
+    },
+    {
+        "to": "+918590506862",
+        "templateName": "service",
+        "language": "en"
+    }
+]
