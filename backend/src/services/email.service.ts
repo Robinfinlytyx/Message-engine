@@ -49,12 +49,35 @@ const BATCH_DELAY_MS = 5000; // 5 seconds between batches
 
 class EmailService {
     /**
+     * Helper to extract variables from text
+     */
+    private extractVariables(text: string): string[] {
+        const regex = /{{([\w]+)}}/g;
+        const matches = text.matchAll(regex);
+        const variables = new Set<string>();
+        for (const match of matches) {
+            variables.add(match[1]);
+        }
+        return Array.from(variables);
+    }
+
+    /**
      * Create email template
      */
     async createTemplate(projectId: string, data: { name: string; subject: string; htmlContent?: string; textContent?: string; variables?: string[] }): Promise<any> {
+        // Auto-extract variables if not provided
+        let variables = data.variables;
+        if (!variables || variables.length === 0) {
+            const subjectVars = this.extractVariables(data.subject);
+            const htmlVars = data.htmlContent ? this.extractVariables(data.htmlContent) : [];
+            const textVars = data.textContent ? this.extractVariables(data.textContent) : [];
+            variables = Array.from(new Set([...subjectVars, ...htmlVars, ...textVars]));
+        }
+
         const [template] = await db.insert(emailTemplates).values({
             projectId,
             ...data,
+            variables,
         }).returning();
         return template;
     }
@@ -82,9 +105,42 @@ class EmailService {
      * Update email template
      */
     async updateTemplate(templateId: string, data: Partial<EmailTemplateInsert>): Promise<any> {
+        // If content is being updated but variables are not provided, re-extract them
+        // Note: This is partial update, so we should ideally fetch existing content to merge?
+        // Or just update variables if content changes and variables are not passed.
+        // For simplicity and correctness, if content changes, client SHOULD pass variables or we should re-calculate.
+        // To strictly re-calculate we need the full new state. 
+        // Let's rely on what's passed for now, but if variables are missing and content is present, extract from *new* content.
+        // A full re-calc would require fetching the existing template first. 
+
+        let variables = data.variables;
+
+        if ((!variables || variables.length === 0) && (data.subject || data.htmlContent || data.textContent)) {
+            // We need to fetch existing to merge if we want to be perfect, 
+            // but simpler strategy: if you update content without vars, we extract from NEW content only.
+            // This might miss vars from unchanged fields if we don't fetch.
+            // Let's fetch the current template to do it right.
+            const current = await this.getTemplate(templateId);
+            if (current) {
+                const newSubject = data.subject !== undefined ? data.subject : current.subject;
+                const newHtml = data.htmlContent !== undefined ? data.htmlContent : current.htmlContent;
+                const newText = data.textContent !== undefined ? data.textContent : current.textContent;
+
+                const subjectVars = this.extractVariables(newSubject || '');
+                const htmlVars = this.extractVariables(newHtml || '');
+                const textVars = this.extractVariables(newText || '');
+                variables = Array.from(new Set([...subjectVars, ...htmlVars, ...textVars]));
+            }
+        }
+
+        const updateData = { ...data, updatedAt: new Date() };
+        if (variables) {
+            updateData.variables = variables;
+        }
+
         const [template] = await db
             .update(emailTemplates)
-            .set({ ...data, updatedAt: new Date() })
+            .set(updateData)
             .where(eq(emailTemplates.id, templateId))
             .returning();
         return template;
