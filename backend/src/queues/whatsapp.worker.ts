@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import { config } from '../config';
+import { config, getRedisConnectionOptions } from '../config';
 import { db, schema } from '../db/db';
 import { whatsappMessages } from '../db/schema/whatsapp_messages';
 import { eq } from 'drizzle-orm';
@@ -114,10 +114,7 @@ export function createWhatsAppWorker(): Worker<WhatsAppJobData> {
             }
         },
         {
-            connection: {
-                host: config.redis.host,
-                port: config.redis.port,
-            },
+            connection: getRedisConnectionOptions(),
             concurrency: 5,
         }
     );

@@ -10,8 +10,11 @@ export const config = {
     },
 
     redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        url: process.env.REDIS_URL || process.env.REDIS_URL_PUBLIC || '',
+        host: process.env.REDISHOST || process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDISPORT || process.env.REDIS_PORT || '6379', 10),
+        user: process.env.REDISUSER || process.env.REDIS_USER || '',
+        password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || '',
     },
 
     telinfy: {
@@ -19,6 +22,26 @@ export const config = {
         baseUrl: 'https://api.telinfy.net',
         whatsAppBusinessId: process.env.TELINFY_WHATSAPP_BUSINESS_ID || '',
     },
+};
+
+/**
+ * Get Redis connection options for BullMQ
+ */
+export const getRedisConnectionOptions = () => {
+    if (config.redis.url) {
+        return {
+            url: config.redis.url,
+            family: 0,
+        };
+    }
+
+    return {
+        host: config.redis.host,
+        port: config.redis.port,
+        username: config.redis.user || undefined,
+        password: config.redis.password || undefined,
+        family: 0,
+    };
 };
 
 // Validate required configuration

@@ -11,9 +11,10 @@ const app = express();
 
 // CORS - allow frontend access
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    origin: ['http://localhost:3001', 'http://localhost:3000', 'https://finx-frontend.vercel.app'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-tenant-id'],
 }));
 
 // Middleware
