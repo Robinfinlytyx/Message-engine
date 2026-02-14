@@ -1,15 +1,12 @@
 import { Queue } from 'bullmq';
-import { config } from '../config';
+import { getRedisConnectionOptions } from '../config';
 
 export interface WhatsAppJobData {
     messageId: string;
 }
 
 export const whatsappQueue = new Queue<WhatsAppJobData>('whatsapp-message-queue', {
-    connection: {
-        host: config.redis.host,
-        port: config.redis.port,
-    },
+    connection: getRedisConnectionOptions(),
     defaultJobOptions: {
         attempts: 3,
         backoff: {

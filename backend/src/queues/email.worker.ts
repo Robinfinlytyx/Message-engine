@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import { config } from '../config';
+import { config, getRedisConnectionOptions } from '../config';
 import { db } from '../db/db';
 import { emailMessages } from '../db/schema/email_messages';
 import { messageLogs } from '../db/schema/message_logs';
@@ -148,10 +148,7 @@ export const emailWorker = new Worker<EmailJobData>(
         }
     },
     {
-        connection: {
-            host: config.redis.host,
-            port: config.redis.port,
-        },
+        connection: getRedisConnectionOptions(),
         concurrency: parseInt(process.env.EMAIL_WORKER_CONCURRENCY || '5'),
         limiter: {
             max: parseInt(process.env.EMAIL_RATE_LIMIT_MAX || '100'),
