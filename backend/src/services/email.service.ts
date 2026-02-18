@@ -50,6 +50,8 @@ const BATCH_DELAY_MS = 5000; // 5 seconds between batches
 class EmailService {
     /**
      * Helper to extract variables from text
+     * 
+     * This uses a simple regex to find all occurrences of {{variableName}} in the text and returns a list of unique variable names.
      */
     private extractVariables(text: string): string[] {
         const regex = /{{([\w]+)}}/g;
