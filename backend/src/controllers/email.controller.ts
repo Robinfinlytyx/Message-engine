@@ -22,8 +22,13 @@ export async function sendEmailController(
         }
 
         // Validate required fields
-        if (!request.to || !request.subject) {
-            res.status(400).json({ error: 'Missing required fields: to, subject' });
+        if (!request.to) {
+            res.status(400).json({ error: 'Missing required field: to' });
+            return;
+        }
+
+        if (!request.subject && !request.templateName && !(request as any).templateId) {
+            res.status(400).json({ error: 'Subject is required unless using a template' });
             return;
         }
 
@@ -69,8 +74,12 @@ export async function sendBulkEmailsController(
 
         // Validate each email
         for (const email of request.emails) {
-            if (!email.to || !email.subject) {
-                res.status(400).json({ error: 'Each email must have to and subject fields' });
+            if (!email.to) {
+                res.status(400).json({ error: 'Each email must have a to field' });
+                return;
+            }
+            if (!email.subject && !email.templateName && !(email as any).templateId) {
+                res.status(400).json({ error: 'Each email must have a subject unless using a template' });
                 return;
             }
         }

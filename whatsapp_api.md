@@ -431,8 +431,159 @@ Creates a new template on Telinfy and saves it locally.
   "name": "new_template",
   "language": "en",
   "category": "MARKETING",
-  "components": [...]
+  "label": "My New Template",
+  "components": [
+    {
+      "type": "BODY",
+      "text": "Hello {{1}}, welcome to our service!",
+      "bodyExample": "John"
+    },
+    {
+      "type": "BUTTONS",
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Yes, proceed"
+        }
+      ]
+    }
+  ]
 }
+```
+
+---
+
+
+#### Template Component Examples
+
+Here are examples of different component configurations for the `components` array in the Create Template request.
+
+**1. Text with Variables**
+
+```json
+[
+  {
+    "type": "BODY",
+    "text": "Hello {{1}}, your order {{2}} has been confirmed!",
+    "bodyExample": "John, #12345"
+  }
+]
+```
+
+**2. Quick Reply Buttons**
+
+```json
+[
+  {
+    "type": "BODY",
+    "text": "Would you like to proceed?",
+    "bodyExample": ""
+  },
+  {
+    "type": "BUTTONS",
+    "buttons": [
+      {
+        "type": "QUICK_REPLY",
+        "text": "Yes"
+      },
+      {
+        "type": "QUICK_REPLY",
+        "text": "No"
+      }
+    ]
+  }
+]
+```
+
+**3. Call to Action - URL Button**
+
+```json
+[
+  {
+    "type": "BODY",
+    "text": "Visit our website for more details.",
+    "bodyExample": ""
+  },
+  {
+    "type": "BUTTONS",
+    "buttons": [
+      {
+        "type": "URL",
+        "text": "Visit Website",
+        "url": "https://www.example.com"
+      }
+    ]
+  }
+]
+```
+
+**4. Call to Action - Phone Number**
+
+```json
+[
+  {
+    "type": "BODY",
+    "text": "Need help? Call us.",
+    "bodyExample": ""
+  },
+  {
+    "type": "BUTTONS",
+    "buttons": [
+      {
+        "type": "PHONE_NUMBER",
+        "text": "Call Support",
+        "phoneNumber": "+919876543210"
+      }
+    ]
+  }
+]
+```
+
+**5. Copy Code Button**
+
+```json
+[
+  {
+    "type": "BODY",
+    "text": "Here is your coupon code.",
+    "bodyExample": ""
+  },
+  {
+    "type": "BUTTONS",
+    "buttons": [
+      {
+        "type": "COPY_CODE",
+        "example": "SAVE20"
+      }
+    ]
+  }
+]
+```
+
+**6. Multiple Button Types**
+
+```json
+[
+  {
+    "type": "BODY",
+    "text": "Your order is ready!",
+    "bodyExample": ""
+  },
+  {
+    "type": "BUTTONS",
+    "buttons": [
+      {
+        "type": "QUICK_REPLY",
+        "text": "Thanks"
+      },
+      {
+        "type": "URL",
+        "text": "Track Order",
+        "url": "https://www.example.com/track"
+      }
+    ]
+  }
+]
 ```
 
 ---

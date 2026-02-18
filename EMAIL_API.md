@@ -148,7 +148,7 @@ curl -H "X-API-Key: your-project-api-key" ...
   }
 }
 ```
-> **Note:** When using `templateId`, `subject`, `html`, and `text` are optional. The template content will be used with variable substitution.
+> **Note:** When using `templateId` or `templateName`, `subject`, `html`, and `text` are optional. The template content will be used. Provide `templateVariables` as a JSON object where keys match the `{{variableName}}` placeholders in your template.
 
 ---
 
@@ -156,9 +156,7 @@ curl -H "X-API-Key: your-project-api-key" ...
 
 **Endpoint:** `POST /api/email/send-bulk`
 
-### Send Bulk Emails
-
-**Endpoint:** `POST /api/email/send-bulk`
+> **Note:** When using `templateId` or `templateName` in individual emails, `subject`, `html`, and `text` are optional. Provide `templateVariables` as a JSON object where keys match the `{{variableName}}` placeholders in your template.
 
 **Request (Standard):**
 ```json
@@ -195,6 +193,11 @@ curl -H "X-API-Key: your-project-api-key" ...
       "to": "user2@example.com",
       "templateId": "uuid-of-template",
       "templateVariables": { "name": "Jane" }
+    },
+    {
+      "to": "user3@example.com",
+      "templateName": "welcome_email",
+      "templateVariables": { "name": "Bob" }
     }
   ]
 }

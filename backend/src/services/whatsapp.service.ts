@@ -3,7 +3,7 @@ import { whatsappTemplates } from '../db/schema/whatsapp_templates';
 import { whatsappMessages } from '../db/schema/whatsapp_messages';
 import { telinfyProvider } from '../providers/telinfy.provider';
 import { logger } from '../utils/logger';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { WhatsAppTemplate } from '../types';
 
 export class WhatsAppService {
@@ -47,15 +47,22 @@ export class WhatsAppService {
     /**
      * Create a new template
      */
+    /**
+     * Create a new template
+     */
     async createTemplate(projectId: string, data: any): Promise<any> {
         logger.info(`Creating template for project ${projectId}`, { name: data.name });
         try {
             // 1. Create on Telinfy
-            // Telinfy requires 'label'
+            // Telinfy requires 'label' and 'components' structure
             const payload = {
-                ...data,
+                name: data.name,
+                category: data.category,
+                language: data.language,
                 label: data.label || data.name, // Default label to name
+                components: data.components || []
             };
+
             const result = await telinfyProvider.createTemplate(payload);
 
             // 2. Save to DB
@@ -129,8 +136,15 @@ export class WhatsAppService {
     /**
      * Get templates from local DB
      */
-    async getTemplates(projectId: string): Promise<any[]> {
-        const templates = await db.select().from(whatsappTemplates).where(eq(whatsappTemplates.projectId, projectId));
+    /**
+     * Get templates from local DB
+     */
+    async getTemplates(projectId: string, status?: string): Promise<any[]> {
+        const whereClause = status
+            ? and(eq(whatsappTemplates.projectId, projectId), eq(whatsappTemplates.status, status))
+            : eq(whatsappTemplates.projectId, projectId);
+
+        const templates = await db.select().from(whatsappTemplates).where(whereClause);
         return templates;
     }
 }

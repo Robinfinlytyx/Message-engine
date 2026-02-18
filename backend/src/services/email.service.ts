@@ -104,6 +104,18 @@ class EmailService {
     }
 
     /**
+     * Get template by Name
+     */
+    async getTemplateByName(projectId: string, name: string): Promise<any> {
+        return db.query.emailTemplates.findFirst({
+            where: and(
+                eq(emailTemplates.projectId, projectId),
+                eq(emailTemplates.name, name)
+            ),
+        });
+    }
+
+    /**
      * Update email template
      */
     async updateTemplate(templateId: string, data: Partial<EmailTemplateInsert>): Promise<any> {
@@ -170,16 +182,29 @@ class EmailService {
         let textContent = request.text;
         let templateId = null;
 
-        // Handle template substitution if templateId is provided
-        if ((request as any).templateId) {
-            templateId = (request as any).templateId;
-            const template = await this.getTemplate(templateId);
-
-            if (!template) {
-                throw new Error(`Template not found: ${templateId}`);
+        // Handle template substitution if templateId is provided or templateName
+        if (request.templateId || request.templateName) {
+            if (request.templateId) {
+                templateId = request.templateId;
+                const template = await this.getTemplate(templateId);
+                if (!template) {
+                    throw new Error(`Template not found: ${templateId}`);
+                }
+                // Use the found template
+                var templateData = template;
+            } else {
+                // Try to find by name
+                const template = await this.getTemplateByName(projectId, request.templateName!);
+                if (!template) {
+                    throw new Error(`Template not found by name: ${request.templateName}`);
+                }
+                templateId = template.id;
+                var templateData = template;
             }
 
-            const variables = (request as any).templateVariables || {};
+            const template = templateData; // Assign to common variable
+
+            const variables = request.templateVariables || {};
 
             // Simple substitution logic
             const substitute = (text: string, vars: Record<string, any>) => {
@@ -201,14 +226,14 @@ class EmailService {
             to: request.to,
             cc: request.cc || null,
             bcc: request.bcc || null,
-            from: request.from,
-            replyTo: request.replyTo,
+            from: request.from || null,
+            replyTo: request.replyTo || null,
             subject: subject || '', // Ensure subject is not null if coming from template
-            templateName: request.templateName,
+            templateName: request.templateName || null,
             templateId,
             htmlContent,
             textContent,
-            templateVariables: (request as any).templateVariables || null,
+            templateVariables: request.templateVariables || null,
             attachments: request.attachments as any,
             provider: 'nodemailer',
             status: MessageStatus.QUEUED,
@@ -286,39 +311,73 @@ class EmailService {
             let subject = email.subject;
             let htmlContent = email.html;
             let textContent = email.text;
-            let templateId = (email as any).templateId;
+            let templateId = email.templateId;
 
-            if (templateId) {
-                if (!templateCache.has(templateId)) {
-                    const template = await this.getTemplate(templateId);
-                    if (template) {
-                        templateCache.set(templateId, template);
-                    } else {
-                        logger.warn(`Template not found for bulk email: ${templateId}`);
-                        // Skip this email or fail? 
-                        // For bulk, let's treat it as a failure for this specific item but continue with others if possible?
-                        // But we are constructing specific inserts here. 
-                        // Let's set a flag to mark it as failed immediately in the batch.
-                        // Or better, since we return a batch ID, maybe we should just fail this single entry insertion later?
-                        // Actually, let's throw for now to force client to provide valid templates, 
-                        // OR fallback to provided subject/html if available.
+            if (templateId || email.templateName) {
+                // Determine effective template ID (and content)
+                let effectiveTemplateId = templateId;
 
-                        if (!email.subject) {
-                            // If template missing and no fallback subject, we can't send.
-                            // We will log this and skip adding to emailInserts to avoid DB error, 
-                            // effectively dropping it.
-                            logger.error(`Skipping email to ${email.to} because template ${templateId} is missing and no fallback subject provided.`);
-                            continue;
+                if (!effectiveTemplateId && email.templateName) {
+                    // Try to resolve name to ID from cache or DB
+                    // We need a way to cache by name too or just resolve here.
+                    // Since we don't have ID, we can't look up by ID yet.
+
+                    // Check if we already resolved this name
+                    // We can use a separate cache for name -> template
+                    // For simplicity, let's just do a lookup if not in cache (and maybe cache name->template)
+
+                    // Optimization: In bulk, multiple emails might use same template name.
+                    // We should verify if we have it. 
+                    // Let's assume templateCache can also store by name? 
+                    // Or better, let's just resolve it.
+
+                    // Actually, we can just resolve it right here.
+                    try {
+                        const templateName = email.templateName!;
+                        const template = await this.getTemplateByName(projectId, templateName);
+                        if (template) {
+                            effectiveTemplateId = template.id;
+                            // Cache it by ID
+                            if (effectiveTemplateId && !templateCache.has(effectiveTemplateId)) {
+                                templateCache.set(effectiveTemplateId, template);
+                            }
+                        } else {
+                            logger.warn(`Template not found by name for bulk email: ${email.templateName}`);
                         }
+                    } catch (e) {
+                        logger.error(`Error resolving template by name ${email.templateName}`, { error: e });
                     }
                 }
 
-                const template = templateCache.get(templateId);
-                if (template) {
-                    const variables = (email as any).templateVariables || {};
-                    subject = substitute(template.subject, variables);
-                    if (template.htmlContent) htmlContent = substitute(template.htmlContent, variables);
-                    if (template.textContent) textContent = substitute(template.textContent, variables);
+                if (effectiveTemplateId) {
+                    if (!templateCache.has(effectiveTemplateId)) {
+                        const template = await this.getTemplate(effectiveTemplateId);
+                        if (template) {
+                            templateCache.set(effectiveTemplateId, template);
+                        } else {
+                            logger.warn(`Template not found for bulk email: ${effectiveTemplateId}`);
+                            if (!email.subject) {
+                                logger.error(`Skipping email to ${email.to} because template ${effectiveTemplateId} is missing and no fallback subject provided.`);
+                                continue;
+                            }
+                        }
+                    }
+
+                    const template = templateCache.get(effectiveTemplateId);
+                    if (template) {
+                        const variables = email.templateVariables || {};
+                        subject = substitute(template.subject, variables);
+                        if (template.htmlContent) htmlContent = substitute(template.htmlContent, variables);
+                        if (template.textContent) textContent = substitute(template.textContent, variables);
+                        // Ensure we use the resolved ID
+                        templateId = template.id;
+                    }
+                } else {
+                    // Template name/id provided but not found
+                    if (!email.subject) {
+                        logger.error(`Skipping email to ${email.to} because template is missing and no fallback subject provided.`);
+                        continue;
+                    }
                 }
             } else {
                 // No template, ensure subject matches
@@ -334,14 +393,14 @@ class EmailService {
                 to: email.to,
                 cc: email.cc || null,
                 bcc: email.bcc || null,
-                from: email.from,
-                replyTo: email.replyTo,
+                from: email.from || null,
+                replyTo: email.replyTo || null,
                 subject: subject || '',
-                templateName: email.templateName,
-                templateId, // Add this field
-                htmlContent,
-                textContent,
-                templateVariables: (email as any).templateVariables || null,
+                templateName: email.templateName || null,
+                templateId: templateId || null, // Add this field
+                htmlContent: htmlContent || null,
+                textContent: textContent || null,
+                templateVariables: email.templateVariables || null,
                 provider: 'nodemailer',
                 status: MessageStatus.QUEUED,
             });

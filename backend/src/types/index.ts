@@ -180,8 +180,10 @@ export interface SendEmailRequest extends BaseMessageRequest {
     channel: 'email';
     to: string;  // Email address
     from?: string;
-    subject: string;
+    subject?: string;
     templateName?: string;
+    templateId?: string;
+    templateVariables?: Record<string, unknown>;
     html?: string;
     text?: string;
     attachments?: EmailAttachment[];
