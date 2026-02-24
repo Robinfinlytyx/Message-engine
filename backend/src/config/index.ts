@@ -20,6 +20,7 @@ export const config = {
     telinfy: {
         apiKey: process.env.TELINFY_API_KEY || '',
         baseUrl: 'https://api.telinfy.net',
+        fileUrl: 'https://fs.telinfy.net',
         whatsAppBusinessId: process.env.TELINFY_WHATSAPP_BUSINESS_ID || '',
     },
 };

@@ -130,6 +130,15 @@ class ApiClient {
         });
     }
 
+    // Templates
+    async createWhatsAppTemplate(projectId: string, apiKey: string, payload: any): Promise<any> {
+        return this.request('/api/whatsapp/templates', {
+            method: 'POST',
+            headers: { 'X-API-Key': apiKey },
+            body: JSON.stringify(payload),
+        });
+    }
+
     // Dashboard stats
     async getStats(): Promise<DashboardStats> {
         return this.request('/api/admin/stats');

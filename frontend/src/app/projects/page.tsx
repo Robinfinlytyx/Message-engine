@@ -167,11 +167,17 @@ export default function ProjectsPage() {
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="pt-2 border-t border-border bg-muted/20">
+                            <CardFooter className="pt-2 border-t border-border bg-muted/20 flex flex-col gap-2">
                                 <Link href={`/messages/${project.id}`} className="w-full">
                                     <Button variant="ghost" className="w-full justify-between group-hover:text-primary">
                                         View Messages
                                         <ExternalLink className="h-4 w-4 ml-2" />
+                                    </Button>
+                                </Link>
+                                <Link href={`/projects/${project.id}/templates/new`} className="w-full">
+                                    <Button variant="outline" className="w-full justify-between group-hover:bg-primary group-hover:text-primary-foreground border-primary/50 border-dashed hover:border-solid">
+                                        Create Template
+                                        <Plus className="h-4 w-4 ml-2" />
                                     </Button>
                                 </Link>
                             </CardFooter>

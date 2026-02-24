@@ -33,7 +33,7 @@ class TelinfyProvider {
 
     constructor() {
         this.baseUrl = config.telinfy.baseUrl;
-        this.fileUploadUrl = `${this.baseUrl}/adapter/files/upload`;
+        this.fileUploadUrl = `${config.telinfy.fileUrl}/adapter/files/upload`;
         this.campaignUrl = `${this.baseUrl}/telinfy-gcms/v4/whatsapp/campaign`;
         this.apiKey = config.telinfy.apiKey;
     }
@@ -111,10 +111,10 @@ class TelinfyProvider {
             const jsonContent = JSON.stringify(messages);
             const blob = Buffer.from(jsonContent, 'utf-8');
 
-            // Create form data (Note: Key must be 'File' based on documentation)
+            // Create form data (Note: Key must be 'file' based on documentation)
             const FormData = (await import('form-data')).default;
             const formData = new FormData();
-            formData.append('File', blob, {
+            formData.append('file', blob, {
                 filename: `campaign-${Date.now()}.json`,
                 contentType: 'application/json',
             });

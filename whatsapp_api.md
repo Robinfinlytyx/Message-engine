@@ -431,12 +431,20 @@ Creates a new template on Telinfy and saves it locally.
   "name": "new_template",
   "language": "en",
   "category": "MARKETING",
+  "allowCategoryChange": true,
   "label": "My New Template",
   "components": [
     {
       "type": "BODY",
       "text": "Hello {{1}}, welcome to our service!",
-      "bodyExample": "John"
+      "example": {
+        "bodyText": [
+          [
+            "John"
+          ]
+        ]
+      },
+      "bodyExample": "Hello John, welcome to our service!"
     },
     {
       "type": "BUTTONS",
@@ -465,7 +473,37 @@ Here are examples of different component configurations for the `components` arr
   {
     "type": "BODY",
     "text": "Hello {{1}}, your order {{2}} has been confirmed!",
-    "bodyExample": "John, #12345"
+    "example": {
+      "bodyText": [
+        [
+          "John",
+          "12345"
+        ]
+      ]
+    },
+    "bodyExample": "Hello John, your order 12345 has been confirmed!"
+  }
+]
+```
+
+**1a. Media Headers (Image, Video, or Document)**
+
+```json
+[
+  {
+    "type": "HEADER",
+    "format": "VIDEO",
+    "example": {
+      "headerHandle": [
+        "https://www.example.com/uploads/video.mp4"
+      ],
+      "mediaUrl": "https://www.example.com/uploads/video.mp4"
+    }
+  },
+  {
+    "type": "BODY",
+    "text": "Check out our new video!",
+    "bodyExample": "Check out our new video!"
   }
 ]
 ```
@@ -510,7 +548,8 @@ Here are examples of different component configurations for the `components` arr
       {
         "type": "URL",
         "text": "Visit Website",
-        "url": "https://www.example.com"
+        "url": "https://www.example.com",
+        "urlExample": "https://www.example.com"
       }
     ]
   }
@@ -579,7 +618,8 @@ Here are examples of different component configurations for the `components` arr
       {
         "type": "URL",
         "text": "Track Order",
-        "url": "https://www.example.com/track"
+        "url": "https://www.example.com/track",
+        "urlExample": "https://www.example.com/track"
       }
     ]
   }

@@ -55,13 +55,17 @@ export class WhatsAppService {
         try {
             // 1. Create on Telinfy
             // Telinfy requires 'label' and 'components' structure
-            const payload = {
+            const payload: Record<string, any> = {
                 name: data.name,
                 category: data.category,
                 language: data.language,
                 label: data.label || data.name, // Default label to name
                 components: data.components || []
             };
+
+            if (data.allowCategoryChange !== undefined) {
+                payload.allowCategoryChange = data.allowCategoryChange;
+            }
 
             const result = await telinfyProvider.createTemplate(payload);
 
