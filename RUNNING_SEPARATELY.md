@@ -88,24 +88,16 @@ When a message is sent, you'll see clean, readable output in the worker terminal
 
 ---
 
-## Alternative: Run Both Together (Old Way)
+## Alternative: Run Both Together (Single Process)
 
-If you want to run both in one terminal:
+If you prefer to run both the API Server and the Workers in a single terminal (useful for local development or simplified production deployments), you can use the unified commands:
 
 ```bash
-# Set environment variable to enable worker
-ENABLE_WORKER=true npm run dev
+# Development (with hot reload)
+npm run dev:all
 ```
 
-Or add to `.env`:
-```
-ENABLE_WORKER=true
-```
-
-Then run:
-```bash
-npm run dev
-```
+This command automatically sets `START_WORKERS=true` behind the scenes, telling the Express server to spawn the BullMQ workers in the same Node.js process.
 
 ---
 
@@ -113,10 +105,10 @@ npm run dev
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev:server` | API server only (recommended) |
-| `npm run dev:worker` | Worker only (recommended) |
-| `npm run dev` | Server only (worker disabled by default) |
-| `ENABLE_WORKER=true npm run dev` | Both in one process |
+| `npm run dev:all` | **Server + Workers** in one process (Recommended for ease of use) |
+| `npm run dev:server` | API server only |
+| `npm run dev:worker` | Worker only (run in a separate terminal) |
+| `npm run dev` | Server only |
 
 ---
 
@@ -188,6 +180,10 @@ For production builds:
 # Build
 npm run build
 
+# Option 1: Run everything in one process (Recommended for simple setups)
+npm run start:all
+
+# Option 2: Run separately (Recommended for multi-server setups)
 # Terminal 1: Server
 npm run start:server
 

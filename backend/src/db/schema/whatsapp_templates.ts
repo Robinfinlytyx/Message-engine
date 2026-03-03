@@ -15,5 +15,5 @@ export const whatsappTemplates = pgTable('whatsapp_templates', {
 }, (table) => ({
     projectIdx: index('idx_whatsapp_templates_project').on(table.projectId),
     nameIdx: index('idx_whatsapp_templates_name').on(table.name),
-    uniqueName: uniqueIndex('idx_whatsapp_templates_unique_name').on(table.name),
+    uniqueProjectName: uniqueIndex('idx_whatsapp_templates_unique_project_name').on(table.projectId, table.name),
 }));

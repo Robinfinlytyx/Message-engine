@@ -17,12 +17,27 @@ export const config = {
         password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || '',
     },
 
+    // Default Telinfy credentials (fallback when project has no config row)
     telinfy: {
         apiKey: process.env.TELINFY_API_KEY || '',
         baseUrl: 'https://api.telinfy.net',
         fileUrl: 'https://fs.telinfy.net',
         whatsAppBusinessId: process.env.TELINFY_WHATSAPP_BUSINESS_ID || '',
     },
+
+    // Default SMTP credentials (fallback when project has no config row)
+    smtp: {
+        host: process.env.SMTP_HOST || '',
+        port: parseInt(process.env.SMTP_PORT || '465', 10),
+        secure: process.env.SMTP_SECURE === 'true',
+        user: process.env.SMTP_USER || '',
+        password: process.env.SMTP_PASSWORD || '',
+        defaultFromEmail: process.env.DEFAULT_FROM_EMAIL || '',
+        defaultFromName: process.env.DEFAULT_FROM_NAME || 'Communication Engine',
+    },
+
+    // Encryption key for securing project credentials at rest
+    encryptionKey: process.env.ENCRYPTION_KEY || '',
 };
 
 /**
@@ -47,10 +62,15 @@ export const getRedisConnectionOptions = () => {
 
 // Validate required configuration
 export function validateConfig(): void {
-    const required = ['DATABASE_URL', 'TELINFY_API_KEY', 'TELINFY_WHATSAPP_BUSINESS_ID'];
+    const required = ['DATABASE_URL', 'ENCRYPTION_KEY'];
     const missing = required.filter((key) => !process.env[key]);
 
     if (missing.length > 0) {
         throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    }
+
+    // Warn if no default Telinfy config (not fatal — projects can have their own)
+    if (!process.env.TELINFY_API_KEY) {
+        console.warn('⚠️  No default TELINFY_API_KEY set. Projects without their own config will fail to send WhatsApp messages.');
     }
 }

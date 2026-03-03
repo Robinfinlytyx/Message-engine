@@ -1,19 +1,20 @@
 import { db } from '../db/db';
 import { whatsappTemplates } from '../db/schema/whatsapp_templates';
 import { whatsappMessages } from '../db/schema/whatsapp_messages';
-import { telinfyProvider } from '../providers/telinfy.provider';
+import { providerFactory } from '../providers/provider.factory';
 import { logger } from '../utils/logger';
 import { eq, and } from 'drizzle-orm';
 import { WhatsAppTemplate } from '../types';
 
 export class WhatsAppService {
     /**
-     * Sync templates from Telinfy to local DB for a specific project
-     * Note: Since Telinfy credentials are global, we just fetch all and assign to project
+     * Sync templates from Telinfy to local DB for a specific project.
+     * Now uses the project's own Telinfy credentials via ProviderFactory.
      */
     async syncTemplates(projectId: string): Promise<WhatsAppTemplate[]> {
         logger.info(`Syncing templates for project ${projectId}`);
         try {
+            const telinfyProvider = await providerFactory.getTelinfyProvider(projectId);
             const templates = await telinfyProvider.getTemplates();
 
             // Upsert templates
@@ -27,7 +28,7 @@ export class WhatsAppService {
                     components: tpl.components,
                     rawData: tpl as any,
                 }).onConflictDoUpdate({
-                    target: [whatsappTemplates.name], // Assuming name is unique, or name+language
+                    target: [whatsappTemplates.projectId, whatsappTemplates.name],
                     set: {
                         status: tpl.status,
                         components: tpl.components,
@@ -45,21 +46,18 @@ export class WhatsAppService {
     }
 
     /**
-     * Create a new template
-     */
-    /**
-     * Create a new template
+     * Create a new template using the project's Telinfy credentials.
      */
     async createTemplate(projectId: string, data: any): Promise<any> {
         logger.info(`Creating template for project ${projectId}`, { name: data.name });
         try {
-            // 1. Create on Telinfy
-            // Telinfy requires 'label' and 'components' structure
+            const telinfyProvider = await providerFactory.getTelinfyProvider(projectId);
+
             const payload: Record<string, any> = {
                 name: data.name,
                 category: data.category,
                 language: data.language,
-                label: data.label || data.name, // Default label to name
+                label: data.label || data.name,
                 components: data.components || []
             };
 
@@ -69,13 +67,13 @@ export class WhatsAppService {
 
             const result = await telinfyProvider.createTemplate(payload);
 
-            // 2. Save to DB
+            // Save to DB
             await db.insert(whatsappTemplates).values({
                 projectId,
                 name: data.name,
                 language: data.language,
                 category: data.category,
-                status: 'PENDING', // Usually pending after creation
+                status: 'PENDING',
                 components: data.components,
                 rawData: result,
             });
@@ -88,7 +86,7 @@ export class WhatsAppService {
     }
 
     /**
-     * Send bulk message (Notify)
+     * Send bulk message using the project's Telinfy credentials.
      */
     async sendBulkMessage(projectId: string, payload: {
         templateName: string;
@@ -106,20 +104,21 @@ export class WhatsAppService {
         });
 
         try {
-            // 1. Call Telinfy Notify endpoint
+            const telinfyProvider = await providerFactory.getTelinfyProvider(projectId);
+
             const response = await telinfyProvider.sendBulkMessage({
                 templateName: payload.templateName,
                 language: payload.language,
                 recipients: payload.recipients
             });
 
-            // 2. Log messages to DB (in background or batch)
+            // Log messages to DB
             const messageInserts = payload.recipients.map(recipient => ({
                 projectId,
                 to: recipient.to,
                 templateName: payload.templateName,
                 language: payload.language,
-                status: 'SENT', // Assumed sent if API returns success
+                status: 'SENT',
                 provider: 'telinfy',
                 payload: { ...recipient, templateName: payload.templateName },
                 header: recipient.header,
@@ -140,9 +139,6 @@ export class WhatsAppService {
     /**
      * Get templates from local DB
      */
-    /**
-     * Get templates from local DB
-     */
     async getTemplates(projectId: string, status?: string): Promise<any[]> {
         const whereClause = status
             ? and(eq(whatsappTemplates.projectId, projectId), eq(whatsappTemplates.status, status))
@@ -154,3 +150,4 @@ export class WhatsAppService {
 }
 
 export const whatsAppService = new WhatsAppService();
+

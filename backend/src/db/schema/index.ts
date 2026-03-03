@@ -9,3 +9,4 @@ export * from './campaigns';
 export * from './webhook_events';
 export * from './whatsapp_templates';
 export * from './email_templates';
+export * from './project_configurations';

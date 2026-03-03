@@ -25,23 +25,39 @@ interface NodemailerResponse {
     response: string;
 }
 
-class NodemailerProvider {
-    private transporter: Mail;
+/**
+ * Configuration needed to construct a NodemailerProvider instance.
+ */
+export interface NodemailerProviderConfig {
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    password: string;
+    defaultFromEmail: string;
+    defaultFromName: string;
+}
 
-    constructor() {
+export class NodemailerProvider {
+    private transporter: Mail;
+    private readonly defaultFrom: string;
+
+    constructor(smtpConfig: NodemailerProviderConfig) {
         this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+            host: smtpConfig.host,
+            port: smtpConfig.port,
+            secure: smtpConfig.secure,
             auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD,
+                user: smtpConfig.user,
+                pass: smtpConfig.password,
             },
         });
 
+        this.defaultFrom = `${smtpConfig.defaultFromName} <${smtpConfig.defaultFromEmail || smtpConfig.user}>`;
+
         logger.info('Nodemailer transporter initialized', {
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
+            host: smtpConfig.host,
+            port: smtpConfig.port,
         });
     }
 
@@ -51,7 +67,7 @@ class NodemailerProvider {
     async sendEmail(message: EmailMessage): Promise<NodemailerResponse> {
         try {
             const mailOptions: Mail.Options = {
-                from: message.from || `${process.env.DEFAULT_FROM_NAME || 'Communication Engine'} <${process.env.DEFAULT_FROM_EMAIL || process.env.SMTP_USER}>`,
+                from: message.from || this.defaultFrom,
                 to: message.to,
                 cc: message.cc,
                 bcc: message.bcc,
@@ -108,7 +124,28 @@ class NodemailerProvider {
             return false;
         }
     }
+
+    /**
+     * Close the transporter connection (for cleanup on cache eviction).
+     */
+    close(): void {
+        this.transporter.close();
+    }
 }
 
-export const nodemailerProvider = new NodemailerProvider();
+/**
+ * Default singleton using .env configuration (backward compatibility).
+ * Services should migrate to using ProviderFactory instead.
+ */
+export const nodemailerProvider = new NodemailerProvider({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || '',
+    password: process.env.SMTP_PASSWORD || '',
+    defaultFromEmail: process.env.DEFAULT_FROM_EMAIL || process.env.SMTP_USER || '',
+    defaultFromName: process.env.DEFAULT_FROM_NAME || 'Communication Engine',
+});
+
 export { EmailMessage, NodemailerResponse };
+

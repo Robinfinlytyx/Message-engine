@@ -19,6 +19,7 @@ The WhatsApp Message Engine is a **multi-project server-side platform** for send
 1. [Authentication](#authentication)
 2. [API Endpoints](#api-endpoints)
    - [Project Management](#project-management)
+   - [Project Configuration](#project-configuration)
    - [Send Template Message](#send-template-message)
    - [Campaign Messaging](#campaign-messaging)
    - [Webhook Handler](#webhook-handler)
@@ -99,6 +100,136 @@ GET /api/admin/projects
       "createdAt": "2026-02-05T10:00:00Z"
     }
   ]
+}
+```
+
+---
+
+### Project Configuration
+
+Manage per-project Telinfy and SMTP credentials. Projects without a configuration row fall back to the global `.env` defaults.
+
+> **Note:** Sensitive fields (API keys, passwords) are stored encrypted at rest using AES-256-GCM and are masked when returned via the API.
+
+#### Get Configuration
+
+```
+GET /api/admin/projects/:projectId/config
+```
+
+**Response (200):**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "projectId": "project-uuid",
+    "whatsappEnabled": true,
+    "telinfyApiKey": "****1382",
+    "telinfyWhatsappBusinessId": "cf89041d-...",
+    "emailEnabled": true,
+    "smtpHost": "mail.example.com",
+    "smtpPort": 465,
+    "smtpSecure": true,
+    "smtpUser": "user@example.com",
+    "smtpPassword": "****",
+    "defaultFromEmail": "noreply@example.com"
+  }
+}
+```
+
+**Response when no config exists (200):**
+```json
+{
+  "data": null,
+  "message": "No configuration found. This project uses global defaults."
+}
+```
+
+#### Create/Update Configuration
+
+```
+PUT /api/admin/projects/:projectId/config
+```
+
+**Request Body:**
+```json
+{
+  "whatsapp": {
+    "enabled": true,
+    "telinfyApiKey": "your-telinfy-api-key",
+    "whatsappBusinessId": "your-whatsapp-business-id"
+  },
+  "email": {
+    "enabled": true,
+    "smtpHost": "mail.example.com",
+    "smtpPort": 465,
+    "smtpSecure": true,
+    "smtpUser": "user@example.com",
+    "smtpPassword": "your-password",
+    "defaultFromEmail": "noreply@example.com",
+    "defaultFromName": "My App",
+    "batchSize": 100,
+    "maxRetries": 3
+  }
+}
+```
+
+> **Tip:** You can send only `whatsapp` or only `email` — partial updates are supported.
+
+**Response (200):**
+```json
+{
+  "data": { ... },
+  "message": "Configuration saved successfully"
+}
+```
+
+#### Delete Configuration
+
+Removes the project config. The project will revert to using global `.env` defaults.
+
+```
+DELETE /api/admin/projects/:projectId/config
+```
+
+**Response (200):**
+```json
+{
+  "message": "Configuration deleted. Project will use global defaults."
+}
+```
+
+#### Test WhatsApp Credentials
+
+Verifies the project's Telinfy API key by fetching templates.
+
+```
+POST /api/admin/projects/:projectId/config/test-whatsapp
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "WhatsApp credentials are valid",
+  "templateCount": 12,
+  "whatsAppBusinessId": "cf89041d-..."
+}
+```
+
+#### Test Email Credentials
+
+Verifies SMTP connectivity using the project's credentials.
+
+```
+POST /api/admin/projects/:projectId/config/test-email
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "SMTP connection verified successfully"
 }
 ```
 
@@ -408,7 +539,9 @@ Retrieves all templates for the project from the local database.
 ```
 
 #### Sync Templates
-Fetches templates from Telinfy and updates the local database.
+Fetches templates from Telinfy using the **project's own credentials** and updates the local database.
+
+> **Note:** Each project has its own set of templates isolated by `(project_id, name)`. Different projects can have templates with the same name from different Telinfy accounts.
 
 **Request:**
 `POST /api/whatsapp/templates/sync`

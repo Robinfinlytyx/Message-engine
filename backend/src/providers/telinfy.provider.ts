@@ -25,17 +25,36 @@ interface CreateCampaignResult {
     from: string;
 }
 
-class TelinfyProvider {
+/**
+ * Configuration needed to construct a TelinfyProvider instance.
+ */
+export interface TelinfyProviderConfig {
+    apiKey: string;
+    baseUrl: string;
+    fileUrl: string;
+    whatsAppBusinessId: string;
+}
+
+export class TelinfyProvider {
     private readonly baseUrl: string;
     private readonly fileUploadUrl: string;
     private readonly campaignUrl: string;
     private readonly apiKey: string;
+    private readonly whatsAppBusinessId: string;
 
-    constructor() {
-        this.baseUrl = config.telinfy.baseUrl;
-        this.fileUploadUrl = `${config.telinfy.fileUrl}/adapter/files/upload`;
+    constructor(providerConfig: TelinfyProviderConfig) {
+        this.baseUrl = providerConfig.baseUrl;
+        this.fileUploadUrl = `${providerConfig.fileUrl}/adapter/files/upload`;
         this.campaignUrl = `${this.baseUrl}/telinfy-gcms/v4/whatsapp/campaign`;
-        this.apiKey = config.telinfy.apiKey;
+        this.apiKey = providerConfig.apiKey;
+        this.whatsAppBusinessId = providerConfig.whatsAppBusinessId;
+    }
+
+    /**
+     * Get the WhatsApp Business ID this provider is configured for.
+     */
+    getWhatsAppBusinessId(): string {
+        return this.whatsAppBusinessId;
     }
 
     /**
@@ -100,12 +119,6 @@ class TelinfyProvider {
             whatsAppBusinessId,
         });
 
-        logger.info('Telinfy Auth Debug', {
-            apiKeyLength: this.apiKey?.length,
-            apiKeyPrefix: this.apiKey?.substring(0, 4) + '...',
-            fileUploadUrl: url
-        });
-
         try {
             // Create JSON file content
             const jsonContent = JSON.stringify(messages);
@@ -125,9 +138,9 @@ class TelinfyProvider {
             }>(url, formData, {
                 headers: {
                     ...formData.getHeaders(),
-                    'API-Key': this.apiKey, // Most standard
-                    'api-key': this.apiKey, // Lowercase variant
-                    'Header-Api-Key': this.apiKey, // From docs table "Header-Api-Key"
+                    'API-Key': this.apiKey,
+                    'api-key': this.apiKey,
+                    'Header-Api-Key': this.apiKey,
                 },
                 timeout: 60000,
             });
@@ -206,15 +219,12 @@ class TelinfyProvider {
      * Get all templates from Telinfy
      */
     async getTemplates(): Promise<import('../types').WhatsAppTemplate[]> {
-        const url = `${this.baseUrl}/gaca/whatsapp/templates?whatsAppBusinessId=${config.telinfy.whatsAppBusinessId}`;
+        const url = `${this.baseUrl}/gaca/whatsapp/templates?whatsAppBusinessId=${this.whatsAppBusinessId}`;
         try {
-            // Response structure: { data: { waba_templates: [...] }, message: "..." }
-            // The axios generic type here was slightly off, we'll cast to any for flexibility or update types properly
             const response = await axios.get<any>(url, {
                 headers: { 'API-Key': this.apiKey },
             });
 
-            // Return the array of templates
             return response.data.data.waba_templates || [];
         } catch (error) {
             this.handleError(error, 'getTemplates');
@@ -276,4 +286,14 @@ class TelinfyProvider {
     }
 }
 
-export const telinfyProvider = new TelinfyProvider();
+/**
+ * Default singleton using .env configuration (backward compatibility).
+ * Services should migrate to using ProviderFactory instead.
+ */
+export const telinfyProvider = new TelinfyProvider({
+    apiKey: config.telinfy.apiKey,
+    baseUrl: config.telinfy.baseUrl,
+    fileUrl: config.telinfy.fileUrl,
+    whatsAppBusinessId: config.telinfy.whatsAppBusinessId,
+});
+

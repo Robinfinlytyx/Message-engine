@@ -8,7 +8,7 @@ All email endpoints require an `X-API-Key` header with your project API key.
 curl -H "X-API-Key: your-project-api-key" ...
 ```
 
-> **Note:** Project ID is automatically determined from your API key - no need to include it in the request body.
+> **Note:** Project ID is automatically determined from your API key. The engine uses the project’s own SMTP credentials (configured via the [Project Configuration API](./WHATSAPP_API.md#project-configuration)), falling back to global `.env` defaults if none are set.
 
 ---
 
@@ -303,8 +303,10 @@ After 3 failures → marked as `FAILED`.
 
 ## Environment Configuration
 
+These are **optional global defaults**. Each project can override them via the [Project Configuration API](./WHATSAPP_API.md#project-configuration).
+
 ```bash
-# SMTP Configuration
+# Default SMTP Configuration (used when a project has no config of its own)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false

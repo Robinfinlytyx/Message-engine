@@ -47,6 +47,46 @@ export interface DashboardStats {
     messagesLast24h: number;
 }
 
+export interface ProjectConfig {
+    id: string;
+    projectId: string;
+    whatsappEnabled: boolean;
+    telinfyApiKey: string | null;
+    telinfyWhatsappBusinessId: string | null;
+    emailEnabled: boolean;
+    smtpHost: string | null;
+    smtpPort: number | null;
+    smtpSecure: boolean;
+    smtpUser: string | null;
+    smtpPassword: string | null;
+    defaultFromEmail: string | null;
+    defaultFromName: string | null;
+    emailBatchSize: number | null;
+    emailMaxRetries: number | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ProjectConfigInput {
+    whatsapp?: {
+        enabled?: boolean;
+        telinfyApiKey?: string;
+        whatsappBusinessId?: string;
+    };
+    email?: {
+        enabled?: boolean;
+        smtpHost?: string;
+        smtpPort?: number;
+        smtpSecure?: boolean;
+        smtpUser?: string;
+        smtpPassword?: string;
+        defaultFromEmail?: string;
+        defaultFromName?: string;
+        batchSize?: number;
+        maxRetries?: number;
+    };
+}
+
 class ApiClient {
     private baseUrl: string;
 
@@ -142,6 +182,49 @@ class ApiClient {
     // Dashboard stats
     async getStats(): Promise<DashboardStats> {
         return this.request('/api/admin/stats');
+    }
+
+    // Single project
+    async getProject(projectId: string): Promise<Project> {
+        return this.request(`/api/admin/projects/${projectId}`);
+    }
+
+    // Project status
+    async updateProjectStatus(projectId: string, status: string): Promise<Project> {
+        return this.request(`/api/admin/projects/${projectId}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+    }
+
+    // ── Project Configuration ──────────────────────────────────
+    async getProjectConfig(projectId: string): Promise<{ data: ProjectConfig | null; message?: string }> {
+        return this.request(`/api/admin/projects/${projectId}/config`);
+    }
+
+    async upsertProjectConfig(projectId: string, data: ProjectConfigInput): Promise<{ data: ProjectConfig; message: string }> {
+        return this.request(`/api/admin/projects/${projectId}/config`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteProjectConfig(projectId: string): Promise<{ message: string }> {
+        return this.request(`/api/admin/projects/${projectId}/config`, {
+            method: 'DELETE',
+        });
+    }
+
+    async testWhatsAppConfig(projectId: string): Promise<{ success: boolean; message: string; templateCount?: number; whatsAppBusinessId?: string }> {
+        return this.request(`/api/admin/projects/${projectId}/config/test-whatsapp`, {
+            method: 'POST',
+        });
+    }
+
+    async testEmailConfig(projectId: string): Promise<{ success: boolean; message: string }> {
+        return this.request(`/api/admin/projects/${projectId}/config/test-email`, {
+            method: 'POST',
+        });
     }
 
     // Email Service (requires project API Key)

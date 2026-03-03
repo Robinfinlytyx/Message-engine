@@ -5,6 +5,7 @@ import projectRoutes from './routes/project.routes';
 import { campaignRoutes } from './routes/campaign.routes';
 import { adminRoutes } from './routes/admin.routes';
 import { emailRoutes } from './routes/email.routes';
+import { projectConfigRoutes } from './routes/project-config.routes';
 import { logger } from './utils/logger';
 
 const app = express();
@@ -38,10 +39,12 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Routes
 app.use(projectRoutes);
+app.use(projectConfigRoutes);
 app.use('/api/admin', adminRoutes);
 app.use(whatsappRoutes);
 app.use('/api/whatsapp', campaignRoutes);
 app.use('/api/email', emailRoutes);
+
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

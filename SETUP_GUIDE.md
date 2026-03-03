@@ -1,4 +1,4 @@
-# WhatsApp Message Engine - Setup Guide
+# Communication Engine - Setup Guide
 
 ## Prerequisites
 
@@ -9,7 +9,8 @@
 
 ⚠️ **Still needed:**
 - [ ] Redis (for BullMQ job queue)
-- [ ] Telinfy API key
+- [ ] Encryption key (for securing project credentials)
+- [ ] Telinfy API key (optional global default for WhatsApp)
 
 ---
 
@@ -192,23 +193,29 @@ src/
 ├── app.ts                  # Express setup
 ├── server.ts               # Entry point
 ├── config/                 # Environment config
-├── controllers/            # Request handlers
-│   └── whatsapp.controller.ts
-├── services/               # Business logic
+├── controllers/
+│   ├── whatsapp.controller.ts
+│   ├── project.controller.ts
+│   └── project-config.controller.ts  # Per-project config CRUD
+├── services/
 │   ├── message.service.ts
+│   ├── project-config.service.ts  # Config resolution + encryption
 │   └── webhook.service.ts
-├── db/                     # Database
-│   ├── db.ts              # Connection
-│   └── schema/            # Table schemas
-├── queues/                # BullMQ
-│   ├── whatsapp.queue.ts
-│   └── whatsapp.worker.ts
-├── providers/             # External APIs
-│   └── telinfy.provider.ts
-├── routes/                # Endpoints
-│   └── whatsapp.routes.ts
-├── types/                 # TypeScript types
-└── utils/                 # Logger
+├── db/
+│   ├── db.ts                # Connection
+│   └── schema/              # Drizzle schemas (incl. project_configurations)
+├── queues/                  # BullMQ queues + workers
+├── providers/
+│   ├── telinfy.provider.ts  # WhatsApp (per-project config)
+│   ├── nodemailer.provider.ts  # Email (per-project config)
+│   └── provider.factory.ts  # LRU-cached per-project factory
+├── routes/                  # Express route definitions
+├── scripts/
+│   └── migrate_project_configs.ts  # One-time migration script
+├── utils/
+│   ├── crypto.ts            # AES-256-GCM encryption
+│   └── logger.ts
+└── types/                   # TypeScript definitions
 ```
 
 ---
@@ -216,15 +223,19 @@ src/
 ## Available Scripts
 
 ```bash
-# Development (with hot reload)
-npm run dev
+# Development (runs server and all workers in one terminal)
+npm run dev:all
+
+# Development (run server and workers separately for debugging)
+npm run dev:server
+npm run dev:worker
 
 # Build for production
 npm run build
 
-# Run production build
-npm start
-
+# Run production build (server + workers in one process)
+npm run start:all
+```
 # Database migrations
 npm run db:push
 npm run db:generate
@@ -259,13 +270,21 @@ Returns server status.
 
 ```bash
 # .env file
+
+# ─── Required ───
 PORT=5000
 DATABASE_URL=postgresql://postgres:[password]@db.xxxxx.supabase.co:5432/postgres
 REDIS_HOST=localhost
 REDIS_PORT=6379
-TELINFY_API_KEY=your_api_key
+ENCRYPTION_KEY=<64-char hex>   # Required for project credential encryption
 
-# Email Service (Nodemailer - SMTP)
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# ─── Optional: Default Telinfy (fallback for projects without config) ───
+TELINFY_API_KEY=your_api_key
+TELINFY_WHATSAPP_BUSINESS_ID=your_biz_id
+
+# ─── Optional: Default SMTP (fallback for projects without config) ───
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -274,6 +293,9 @@ SMTP_PASSWORD=your-app-password
 DEFAULT_FROM_EMAIL=noreply@yourapp.com
 DEFAULT_FROM_NAME=YourApp
 ```
+
+> **Note:** Each project can have its own Telinfy and SMTP credentials configured via the admin API. The `.env` values are used as global defaults.
+
 
 **Important:** If password contains special characters, URL-encode them:
 - `/` → `%2F`

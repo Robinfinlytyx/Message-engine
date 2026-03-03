@@ -1,11 +1,12 @@
 # Multi-Channel Communication Engine
 
-A scalable, multi-channel communication engine supporting WhatsApp, Email, SMS, and Push notifications.
+A scalable, multi-channel, **multi-project** communication engine supporting WhatsApp, Email, SMS, and Push notifications.
 
 ## Features
 
 - ✅ **WhatsApp** messaging via Telinfy
 - ✅ **Email** support via Nodemailer with batching and retry
+- 🏢 **Multi-project** — each project has its own Telinfy & SMTP credentials (encrypted at rest)
 - 📱 **SMS** support (ready to implement)
 - 🔔 **Push Notifications** (ready to implement)
 - 🎯 Multi-channel architecture with independent queues
@@ -33,28 +34,32 @@ npm install
 cp .env.example .env
 
 # Update .env with your credentials
-# DATABASE_URL, REDIS_HOST, REDIS_PORT, TELINFY_API_KEY
+# DATABASE_URL, REDIS_HOST, REDIS_PORT, ENCRYPTION_KEY
+# Optionally: TELINFY_API_KEY, SMTP_HOST, etc. (as global defaults)
 
 # Push schema to database
 npm run db:push
+
+# Migrate existing projects (creates per-project config rows)
+npx ts-node src/scripts/migrate_project_configs.ts
 ```
 
 ### Run in Development
 
-**Option 1: Separate Processes (Recommended)**
+**Option 1: Single Process (Recommended)**
+Runs both the HTTP server and all background workers (WhatsApp & Email) in one terminal.
+```bash
+npm run dev:all
+```
 
+**Option 2: Separate Processes**
+If you need to debug workers separately from the server:
 ```bash
 # Terminal 1: API Server
 npm run dev:server
 
 # Terminal 2: Worker
 npm run dev:worker
-```
-
-**Option 2: Single Process**
-
-```bash
-ENABLE_WORKER=true npm run dev
 ```
 
 ## Architecture
@@ -70,6 +75,41 @@ Client → API Server → Database (channel-aware)
 ```
 
 ## API Endpoints
+
+### Project Configuration (Admin)
+
+```bash
+# Get project config (secrets masked)
+GET /api/admin/projects/:projectId/config
+
+# Create or update project config
+PUT /api/admin/projects/:projectId/config
+{
+  "whatsapp": {
+    "enabled": true,
+    "telinfyApiKey": "your-key",
+    "whatsappBusinessId": "your-biz-id"
+  },
+  "email": {
+    "enabled": true,
+    "smtpHost": "mail.example.com",
+    "smtpPort": 465,
+    "smtpSecure": true,
+    "smtpUser": "user@example.com",
+    "smtpPassword": "pass",
+    "defaultFromEmail": "noreply@example.com"
+  }
+}
+
+# Delete project config (revert to global defaults)
+DELETE /api/admin/projects/:projectId/config
+
+# Test WhatsApp credentials
+POST /api/admin/projects/:projectId/config/test-whatsapp
+
+# Test SMTP credentials
+POST /api/admin/projects/:projectId/config/test-email
+```
 
 ### WhatsApp
 
@@ -133,6 +173,13 @@ POST /api/sms/send
 - `status` - QUEUED | SENT | DELIVERED | READ | FAILED
 - `channel_specific_data` - channel metadata
 
+### project_configurations
+- `project_id` - FK to projects (1:1)
+- `telinfy_api_key` - encrypted Telinfy API key
+- `telinfy_whatsapp_business_id` - WhatsApp Business ID
+- `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password` (encrypted) — SMTP credentials
+- `whatsapp_enabled`, `email_enabled` — feature flags per project
+
 ### webhook_events
 - `channel` - webhook source channel
 - `provider` - webhook provider
@@ -141,41 +188,54 @@ POST /api/sms/send
 
 ## Documentation
 
-- [API Documentation](./API_DOCUMENTATION.md) - Complete API reference
+- [WhatsApp API](./WHATSAPP_API.md) - WhatsApp & Campaign API reference
+- [Email API](./EMAIL_API.md) - Email API reference
 - [Setup Guide](./SETUP_GUIDE.md) - Installation and configuration
 - [Running Separately](./RUNNING_SEPARATELY.md) - Server + Worker guide
-- [Implementation Plan](./brain/implementation_plan.md) - Multi-channel architecture
-- [Walkthrough](./brain/walkthrough.md) - Implementation details
 
 ## Project Structure
 
 ```
 src/
-├── providers/         # Channel providers (Telinfy, SendGrid, etc.)
-├── queues/           # BullMQ queues (whatsapp, email, sms)
-├── workers/          # Background workers
-├── services/         # Business logic (channel-agnostic)
-├── controllers/      # API request handlers
-├── routes/           # Express routes
+├── providers/
+│   ├── telinfy.provider.ts      # WhatsApp (accepts per-project config)
+│   ├── nodemailer.provider.ts   # Email (accepts per-project config)
+│   └── provider.factory.ts      # LRU-cached factory for per-project providers
+├── queues/                      # BullMQ queues & workers
+├── services/
+│   ├── project-config.service.ts # Per-project config CRUD + encryption
+│   ├── whatsapp.service.ts
+│   ├── campaign.service.ts
+│   └── email.service.ts
+├── controllers/                 # API request handlers
+├── routes/                      # Express routes
 ├── db/
-│   └── schema/      # Multi-channel database schema
-├── types/           # TypeScript definitions
-└── utils/           # Helpers and utilities
+│   └── schema/                  # Drizzle schemas incl. project_configurations
+├── scripts/
+│   └── migrate_project_configs.ts  # Migration for existing projects
+├── utils/
+│   ├── crypto.ts                # AES-256-GCM encryption
+│   └── logger.ts
+└── types/
 ```
 
 ## Environment Variables
 
 ```bash
+# ─── Required ───
 PORT=3000
 DATABASE_URL=postgresql://...
 REDIS_HOST=localhost
 REDIS_PORT=6379
+ENCRYPTION_KEY=<64-char hex>  # For encrypting project credentials at rest
+
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# ─── Optional: Default Telinfy credentials (fallback for projects without config) ───
 TELINFY_API_KEY=your_key
+TELINFY_WHATSAPP_BUSINESS_ID=your_biz_id
 
-# Optional: Enable worker in server process
-ENABLE_WORKER=false
-
-# Email Service (Nodemailer - SMTP)
+# ─── Optional: Default SMTP credentials (fallback for projects without config) ───
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -184,11 +244,13 @@ SMTP_PASSWORD=your-app-password
 DEFAULT_FROM_EMAIL=noreply@yourapp.com
 DEFAULT_FROM_NAME=YourApp
 
-# Email Service Tuning
+# ─── Email Service Tuning ───
 EMAIL_BATCH_SIZE=100
 EMAIL_MAX_RETRIES=3
 EMAIL_WORKER_CONCURRENCY=5
 ```
+
+> **Note:** Telinfy and SMTP variables are now **optional global defaults**. Each project can have its own credentials stored encrypted in the database via the Project Configuration API.
 
 ## Scripts
 

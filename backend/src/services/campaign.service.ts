@@ -1,9 +1,8 @@
 import { db } from '../db/db';
 import { campaigns, CampaignInsert } from '../db/schema/campaigns';
 import { eq } from 'drizzle-orm';
-import { telinfyProvider } from '../providers/telinfy.provider';
+import { providerFactory } from '../providers/provider.factory';
 import { logger } from '../utils/logger';
-import { config } from '../config';
 
 export interface CampaignMessage {
     to: string;
@@ -31,19 +30,13 @@ export interface CreateCampaignResponse {
 }
 
 class CampaignService {
-    private readonly channelId: string;
-
-    constructor() {
-        // Get WhatsApp Business ID from config
-        this.channelId = config.telinfy.whatsAppBusinessId || '';
-    }
-
     /**
-     * Create a new campaign
-     * 1. Store campaign in database with pending status
-     * 2. Upload messages file to Telinfy
-     * 3. Create campaign on Telinfy
-     * 4. Update campaign with Telinfy response
+     * Create a new campaign using the project's own Telinfy credentials.
+     * 1. Resolve the project's Telinfy provider (gets channelId from project config)
+     * 2. Store campaign in database
+     * 3. Upload messages file to Telinfy
+     * 4. Create campaign on Telinfy
+     * 5. Update campaign with Telinfy response
      */
     async createCampaign(
         projectId: string,
@@ -62,8 +55,12 @@ class CampaignService {
             throw new Error('Campaign must have at least one message');
         }
 
-        if (!this.channelId) {
-            throw new Error('WhatsApp Business ID not configured');
+        // Resolve the project's Telinfy provider and get channelId
+        const telinfyProvider = await providerFactory.getTelinfyProvider(projectId);
+        const channelId = telinfyProvider.getWhatsAppBusinessId();
+
+        if (!channelId) {
+            throw new Error('WhatsApp Business ID not configured for this project');
         }
 
         let parsedScheduleTime: Date | null = null;
@@ -100,7 +97,7 @@ class CampaignService {
         const [campaign] = await db.insert(campaigns).values({
             projectId,
             name,
-            channelId: this.channelId,
+            channelId,
             channelGroupId,
             status: 'pending',
             messageCount: messages.length,
@@ -116,7 +113,7 @@ class CampaignService {
 
             const fileUploadResult = await telinfyProvider.uploadCampaignFile(
                 messages as unknown as Array<Record<string, unknown>>,
-                this.channelId
+                channelId
             );
 
             // Update campaign with file ID
@@ -131,7 +128,7 @@ class CampaignService {
             const campaignScheduleTime = scheduleTime || new Date().toISOString();
 
             const telinfyResult = await telinfyProvider.createCampaign({
-                channelId: this.channelId,
+                channelId,
                 campaignId: fileUploadResult.fileId,
                 campaignName: name,
                 channelGroupId,
@@ -210,15 +207,6 @@ class CampaignService {
     async getAllCampaigns(params: { projectId?: string; limit?: number }) {
         const { projectId, limit = 50 } = params;
 
-        let query = db.select().from(campaigns).orderBy(campaigns.createdAt);
-
-        if (projectId) {
-            // @ts-ignore - Dynamic where clause simple implementation
-            query = query.where(eq(campaigns.projectId, projectId));
-        }
-
-        // Limit not directly chainable in all query builders the same way with conditional where 
-        // Re-writing for safety
         if (projectId) {
             return db.select()
                 .from(campaigns)
@@ -246,3 +234,4 @@ class CampaignService {
 }
 
 export const campaignService = new CampaignService();
+

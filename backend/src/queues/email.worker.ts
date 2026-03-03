@@ -5,7 +5,7 @@ import { emailMessages } from '../db/schema/email_messages';
 import { messageLogs } from '../db/schema/message_logs';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { nodemailerProvider } from '../providers/nodemailer.provider';
+import { providerFactory } from '../providers/provider.factory';
 import { emailService } from '../services/email.service';
 import { MessageStatus } from '../types';
 import { logger } from '../utils/logger';
@@ -15,7 +15,7 @@ interface EmailJobData {
 }
 
 /**
- * Process individual email
+ * Process individual email using the project's SMTP credentials.
  */
 async function processSingleEmail(job: Job<EmailJobData>): Promise<void> {
     const startTime = Date.now();
@@ -39,7 +39,10 @@ async function processSingleEmail(job: Job<EmailJobData>): Promise<void> {
             return;
         }
 
-        // Send via Nodemailer
+        // Resolve the project's Nodemailer provider
+        const nodemailerProvider = await providerFactory.getNodemailerProvider(email.projectId);
+
+        // Send via project-specific Nodemailer
         const result = await nodemailerProvider.sendEmail({
             to: email.to,
             cc: email.cc || undefined,
@@ -176,3 +179,4 @@ logger.info('Email worker started', {
     concurrency: process.env.EMAIL_WORKER_CONCURRENCY || 5,
     rateLimit: `${process.env.EMAIL_RATE_LIMIT_MAX || 100} per ${process.env.EMAIL_RATE_LIMIT_DURATION || 1000}ms`,
 });
+

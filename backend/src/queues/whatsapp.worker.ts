@@ -3,7 +3,7 @@ import { config, getRedisConnectionOptions } from '../config';
 import { db, schema } from '../db/db';
 import { whatsappMessages } from '../db/schema/whatsapp_messages';
 import { eq } from 'drizzle-orm';
-import { telinfyProvider } from '../providers/telinfy.provider';
+import { providerFactory } from '../providers/provider.factory';
 import { MessageStatus } from '../types';
 import type { WhatsAppJobData } from './whatsapp.queue';
 
@@ -46,7 +46,11 @@ export function createWhatsAppWorker(): Worker<WhatsAppJobData> {
                 console.log(`  ✓ Message found - To: ${message.to}`);
                 console.log(`  ✓ Template: ${message.templateName || 'N/A'}`);
 
-                // Call Telinfy API
+                // Resolve the project's Telinfy provider
+                console.log(`  🔑 Resolving Telinfy credentials for project: ${message.projectId}`);
+                const telinfyProvider = await providerFactory.getTelinfyProvider(message.projectId);
+
+                // Call Telinfy API with project-specific provider
                 console.log('  🚀 Sending to Telinfy API...');
                 const response = await telinfyProvider.sendTemplateMessage(
                     message.payload as Record<string, unknown>
@@ -129,3 +133,4 @@ export function createWhatsAppWorker(): Worker<WhatsAppJobData> {
 
     return worker;
 }
+

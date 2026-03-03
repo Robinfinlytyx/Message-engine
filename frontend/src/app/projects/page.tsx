@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api, Project } from '@/lib/api';
-import { Plus, Search, MoreVertical, Copy, Terminal, ExternalLink } from 'lucide-react';
+import { Plus, Search, MoreVertical, Copy, Terminal, ExternalLink, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -168,16 +168,16 @@ export default function ProjectsPage() {
                                 </div>
                             </CardContent>
                             <CardFooter className="pt-2 border-t border-border bg-muted/20 flex flex-col gap-2">
-                                <Link href={`/messages/${project.id}`} className="w-full">
+                                <Link href={`/projects/${project.id}`} className="w-full">
                                     <Button variant="ghost" className="w-full justify-between group-hover:text-primary">
-                                        View Messages
+                                        Open Project
                                         <ExternalLink className="h-4 w-4 ml-2" />
                                     </Button>
                                 </Link>
-                                <Link href={`/projects/${project.id}/templates/new`} className="w-full">
+                                <Link href={`/projects/${project.id}?tab=config`} className="w-full">
                                     <Button variant="outline" className="w-full justify-between group-hover:bg-primary group-hover:text-primary-foreground border-primary/50 border-dashed hover:border-solid">
-                                        Create Template
-                                        <Plus className="h-4 w-4 ml-2" />
+                                        Configure Credentials
+                                        <Settings className="h-4 w-4 ml-2" />
                                     </Button>
                                 </Link>
                             </CardFooter>
