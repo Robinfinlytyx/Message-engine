@@ -21,11 +21,23 @@ export const projectConfigurations = pgTable('project_configurations', {
     // ─── WhatsApp / Telinfy Configuration ────────────────────────────
     whatsappEnabled: boolean('whatsapp_enabled').notNull().default(false),
 
-    // Encrypted: Telinfy API key
+    // Encrypted: Telinfy API key (maps to accountId during campaigns)
     telinfyApiKey: text('telinfy_api_key'),
 
-    // WhatsApp Business Account ID on Telinfy
+    // WhatsApp Business Account ID on Telinfy (maps to channelId during campaigns)
     telinfyWhatsappBusinessId: text('telinfy_whatsapp_business_id'),
+
+    // Encrypted: Telinfy Access ID (maps to template.apiKey during campaigns)
+    telinfyAccessId: text('telinfy_access_id'),
+
+    // Telinfy Phone Number ID for template usage
+    telinfyPhoneNumberId: text('telinfy_phone_number_id'),
+
+    // Telinfy User Name for template usage
+    telinfyUserName: text('telinfy_user_name'),
+
+    // Telinfy Business Account ID for template usage
+    telinfyBusinessAccountId: text('telinfy_business_account_id'),
 
     // ─── Email / SMTP Configuration ─────────────────────────────────
     emailEnabled: boolean('email_enabled').notNull().default(false),

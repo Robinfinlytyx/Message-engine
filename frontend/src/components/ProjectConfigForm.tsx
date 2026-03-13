@@ -41,6 +41,13 @@ export default function ProjectConfigForm({ projectId }: ProjectConfigFormProps)
     const [whatsappBusinessId, setWhatsappBusinessId] = useState('');
     const [showApiKey, setShowApiKey] = useState(false);
 
+    // New Telinfy fields
+    const [telinfyAccessId, setTelinfyAccessId] = useState('');
+    const [showAccessId, setShowAccessId] = useState(false);
+    const [telinfyPhoneNumberId, setTelinfyPhoneNumberId] = useState('');
+    const [telinfyUserName, setTelinfyUserName] = useState('');
+    const [telinfyBusinessAccountId, setTelinfyBusinessAccountId] = useState('');
+
     // Email fields
     const [emailEnabled, setEmailEnabled] = useState(false);
     const [smtpHost, setSmtpHost] = useState('');
@@ -71,6 +78,10 @@ export default function ProjectConfigForm({ projectId }: ProjectConfigFormProps)
                 setWaEnabled(result.data.whatsappEnabled);
                 setTelinfyApiKey(''); // API returns masked, don't prefill
                 setWhatsappBusinessId(result.data.telinfyWhatsappBusinessId || '');
+                setTelinfyAccessId(''); // Masked
+                setTelinfyPhoneNumberId(result.data.telinfyPhoneNumberId || '');
+                setTelinfyUserName(result.data.telinfyUserName || '');
+                setTelinfyBusinessAccountId(result.data.telinfyBusinessAccountId || '');
                 setEmailEnabled(result.data.emailEnabled);
                 setSmtpHost(result.data.smtpHost || '');
                 setSmtpPort(String(result.data.smtpPort || 465));
@@ -105,7 +116,11 @@ export default function ProjectConfigForm({ projectId }: ProjectConfigFormProps)
             data.whatsapp = {
                 enabled: waEnabled,
                 ...(telinfyApiKey && { telinfyApiKey }),
-                ...(whatsappBusinessId && { whatsappBusinessId }),
+                ...(whatsappBusinessId && { telinfyWhatsappBusinessId: whatsappBusinessId }),
+                ...(telinfyAccessId && { telinfyAccessId }),
+                ...(telinfyPhoneNumberId && { telinfyPhoneNumberId }),
+                ...(telinfyUserName && { telinfyUserName }),
+                ...(telinfyBusinessAccountId && { telinfyBusinessAccountId }),
             };
 
             // Only send email config if enabled or has values
@@ -141,6 +156,10 @@ export default function ProjectConfigForm({ projectId }: ProjectConfigFormProps)
             setWaEnabled(false);
             setTelinfyApiKey('');
             setWhatsappBusinessId('');
+            setTelinfyAccessId('');
+            setTelinfyPhoneNumberId('');
+            setTelinfyUserName('');
+            setTelinfyBusinessAccountId('');
             setEmailEnabled(false);
             setSmtpHost('');
             setSmtpPort('465');
@@ -199,8 +218,8 @@ export default function ProjectConfigForm({ projectId }: ProjectConfigFormProps)
             {/* Feedback toast */}
             {feedback && (
                 <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${feedback.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
                     }`}>
                     {feedback.type === 'success' ? (
                         <CheckCircle2 className="h-4 w-4" />
@@ -274,6 +293,51 @@ export default function ProjectConfigForm({ projectId }: ProjectConfigFormProps)
                             value={whatsappBusinessId}
                             onChange={(e) => { setWhatsappBusinessId(e.target.value); markChanged(); }}
                         />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border mt-2">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Access ID (Template API Key)</label>
+                            <div className="relative">
+                                <Input
+                                    type={showAccessId ? 'text' : 'password'}
+                                    placeholder={config?.telinfyAccessId ? '••••' : 'Enter Access ID'}
+                                    value={telinfyAccessId}
+                                    onChange={(e) => { setTelinfyAccessId(e.target.value); markChanged(); }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAccessId(!showAccessId)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showAccessId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Phone Number ID</label>
+                            <Input
+                                placeholder="e.g. 973046482554258"
+                                value={telinfyPhoneNumberId}
+                                onChange={(e) => { setTelinfyPhoneNumberId(e.target.value); markChanged(); }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">User Name</label>
+                            <Input
+                                placeholder="e.g. finlytyx"
+                                value={telinfyUserName}
+                                onChange={(e) => { setTelinfyUserName(e.target.value); markChanged(); }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Business Account ID (Template)</label>
+                            <Input
+                                placeholder="e.g. 851431301230898"
+                                value={telinfyBusinessAccountId}
+                                onChange={(e) => { setTelinfyBusinessAccountId(e.target.value); markChanged(); }}
+                            />
+                        </div>
                     </div>
                     {/* Test button */}
                     <div className="flex items-center gap-3 pt-2">

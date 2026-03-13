@@ -126,6 +126,10 @@ GET /api/admin/projects/:projectId/config
     "whatsappEnabled": true,
     "telinfyApiKey": "****1382",
     "telinfyWhatsappBusinessId": "cf89041d-...",
+    "telinfyAccessId": "****",
+    "telinfyPhoneNumberId": "973046482554258",
+    "telinfyUserName": "finlytyx",
+    "telinfyBusinessAccountId": "851431301230898",
     "emailEnabled": true,
     "smtpHost": "mail.example.com",
     "smtpPort": 465,
@@ -157,7 +161,11 @@ PUT /api/admin/projects/:projectId/config
   "whatsapp": {
     "enabled": true,
     "telinfyApiKey": "your-telinfy-api-key",
-    "whatsappBusinessId": "your-whatsapp-business-id"
+    "telinfyWhatsappBusinessId": "your-whatsapp-business-id",
+    "telinfyAccessId": "your-template-access-id",
+    "telinfyPhoneNumberId": "your-phone-number-id",
+    "telinfyUserName": "your-username",
+    "telinfyBusinessAccountId": "your-template-business-account-id"
   },
   "email": {
     "enabled": true,
@@ -814,6 +822,8 @@ POST /api/whatsapp/campaign
 Content-Type: application/json
 X-API-Key: your-project-api-key
 ```
+
+> **Note on Security:** You do not need to pass sensitive Telinfy authentication details like `accessId` (Template API Key), `phoneNumberId`, `userName`, or `businessAccountId` in this request. The Communication Engine securely fetches these from your Project Configuration and dynamically injects them into the Telinfy Campaign Step 2 payload format.
 
 **Request Body:**
 ```json

@@ -53,6 +53,10 @@ export interface ProjectConfig {
     whatsappEnabled: boolean;
     telinfyApiKey: string | null;
     telinfyWhatsappBusinessId: string | null;
+    telinfyAccessId: string | null;
+    telinfyPhoneNumberId: string | null;
+    telinfyUserName: string | null;
+    telinfyBusinessAccountId: string | null;
     emailEnabled: boolean;
     smtpHost: string | null;
     smtpPort: number | null;
@@ -71,7 +75,11 @@ export interface ProjectConfigInput {
     whatsapp?: {
         enabled?: boolean;
         telinfyApiKey?: string;
-        whatsappBusinessId?: string;
+        telinfyWhatsappBusinessId?: string;
+        telinfyAccessId?: string;
+        telinfyPhoneNumberId?: string;
+        telinfyUserName?: string;
+        telinfyBusinessAccountId?: string;
     };
     email?: {
         enabled?: boolean;

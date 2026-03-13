@@ -6,7 +6,7 @@ import { config } from '../config';
 import { logger } from '../utils/logger';
 
 // Fields that are stored encrypted in the database
-const ENCRYPTED_FIELDS: (keyof ProjectConfigInsert)[] = ['telinfyApiKey', 'smtpPassword'];
+const ENCRYPTED_FIELDS: (keyof ProjectConfigInsert)[] = ['telinfyApiKey', 'smtpPassword', 'telinfyAccessId'];
 
 /**
  * Decrypted project configuration — the shape services actually work with.
@@ -21,6 +21,10 @@ export interface ProjectConfigInput {
     whatsappEnabled?: boolean;
     telinfyApiKey?: string;
     telinfyWhatsappBusinessId?: string;
+    telinfyAccessId?: string;
+    telinfyPhoneNumberId?: string;
+    telinfyUserName?: string;
+    telinfyBusinessAccountId?: string;
     emailEnabled?: boolean;
     smtpHost?: string;
     smtpPort?: number;
@@ -44,6 +48,10 @@ export interface ResolvedTelinfyConfig {
     baseUrl: string;
     fileUrl: string;
     whatsAppBusinessId: string;
+    accessId?: string | null;
+    phoneNumberId?: string | null;
+    userName?: string | null;
+    businessAccountId?: string | null;
 }
 
 export interface ResolvedSmtpConfig {
@@ -86,6 +94,7 @@ class ProjectConfigService {
             ...decrypted,
             telinfyApiKey: decrypted.telinfyApiKey ? cryptoService.mask(decrypted.telinfyApiKey) : null,
             smtpPassword: decrypted.smtpPassword ? cryptoService.mask(decrypted.smtpPassword) : null,
+            telinfyAccessId: decrypted.telinfyAccessId ? cryptoService.mask(decrypted.telinfyAccessId) : null,
         };
     }
 
@@ -178,6 +187,10 @@ class ProjectConfigService {
             baseUrl: config.telinfy.baseUrl,
             fileUrl: config.telinfy.fileUrl,
             whatsAppBusinessId: projectConfig?.telinfyWhatsappBusinessId || config.telinfy.whatsAppBusinessId,
+            accessId: projectConfig?.telinfyAccessId || null,
+            phoneNumberId: projectConfig?.telinfyPhoneNumberId || null,
+            userName: projectConfig?.telinfyUserName || null,
+            businessAccountId: projectConfig?.telinfyBusinessAccountId || null,
         };
     }
 
@@ -209,6 +222,9 @@ class ProjectConfigService {
             whatsappEnabled: input.whatsappEnabled ?? false,
             emailEnabled: input.emailEnabled ?? false,
             telinfyWhatsappBusinessId: input.telinfyWhatsappBusinessId || null,
+            telinfyPhoneNumberId: input.telinfyPhoneNumberId || null,
+            telinfyUserName: input.telinfyUserName || null,
+            telinfyBusinessAccountId: input.telinfyBusinessAccountId || null,
             smtpHost: input.smtpHost || null,
             smtpPort: input.smtpPort || null,
             smtpSecure: input.smtpSecure ?? true,
@@ -225,6 +241,9 @@ class ProjectConfigService {
         if (input.telinfyApiKey) {
             data.telinfyApiKey = cryptoService.encrypt(input.telinfyApiKey);
         }
+        if (input.telinfyAccessId) {
+            data.telinfyAccessId = cryptoService.encrypt(input.telinfyAccessId);
+        }
         if (input.smtpPassword) {
             data.smtpPassword = cryptoService.encrypt(input.smtpPassword);
         }
@@ -236,6 +255,7 @@ class ProjectConfigService {
         return {
             ...row,
             telinfyApiKey: row.telinfyApiKey ? cryptoService.decrypt(row.telinfyApiKey) : null,
+            telinfyAccessId: row.telinfyAccessId ? cryptoService.decrypt(row.telinfyAccessId) : null,
             smtpPassword: row.smtpPassword ? cryptoService.decrypt(row.smtpPassword) : null,
         };
     }

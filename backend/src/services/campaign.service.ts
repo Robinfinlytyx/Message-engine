@@ -42,7 +42,7 @@ class CampaignService {
         projectId: string,
         request: CreateCampaignRequest
     ): Promise<CreateCampaignResponse> {
-        const { name, messages, scheduleTime, channelGroupId = 3 } = request;
+        const { name, messages, scheduleTime, channelGroupId = 1 } = request;
 
         logger.info('Creating campaign', {
             projectId,
@@ -119,28 +119,50 @@ class CampaignService {
             // Update campaign with file ID
             await db.update(campaigns)
                 .set({
-                    fileId: fileUploadResult.fileId,
+                    fileId: String(fileUploadResult.fileId),
                     updatedAt: new Date(),
                 })
                 .where(eq(campaigns.id, campaign.id));
 
             // Step 3: Create campaign on Telinfy
-            const campaignScheduleTime = scheduleTime || new Date().toISOString();
+            // Telinfy's Python backend crashes on offset-aware datetimes (like ending in Z or +05:30)
+            // It strictly requires offset-naive strings like "2026-03-10T10:00:00.000"
+            const rawScheduleTime = scheduleTime || new Date().toISOString();
+
+            // Convert any ISO string to offset-naive format: YYYY-MM-DDTHH:mm:ss.000
+            const dateObj = new Date(rawScheduleTime);
+            let campaignScheduleTime = dateObj.toISOString().split('Z')[0];
+
+            // toISOString() usually outputs YYYY-MM-DDTHH:mm:ss.SSSZ
+            // So splitting by 'Z' already includes the .SSS (milliseconds).
+            // We only need to append .000 if it strictly lacks milliseconds.
+            if (!campaignScheduleTime.includes('.')) {
+                campaignScheduleTime += '.000';
+            }
+
+            // The template mapping is unified for the whole campaign, we assume messages[0] holds it
+            const firstMessage = messages[0];
 
             const telinfyResult = await telinfyProvider.createCampaign({
-                channelId,
-                campaignId: fileUploadResult.fileId,
                 campaignName: name,
-                channelGroupId,
+                channelGroupId: channelGroupId, // Usually 1 for WhatsApp or as configured
+                platformId: 1, // Usually 1 for WhatsApp Platform on Telinfy
+                templateName: firstMessage.templateName,
+                language: firstMessage.language,
+                header: firstMessage.header || null,
+                body: firstMessage.body || null,
+                fileId: Number(fileUploadResult.fileId),
                 scheduleTime: campaignScheduleTime,
-                campaignMessageCount: messages.length,
             });
+
+            // Map Telinfy numeric status to a string representation if needed, or just store the number as string
+            const telinfyStatusStr = String(telinfyResult.status);
 
             // Step 4: Update campaign with Telinfy response
             await db.update(campaigns)
                 .set({
-                    telinfyCampaignId: telinfyResult.campaignId,
-                    status: telinfyResult.status.toLowerCase(),
+                    telinfyCampaignId: String(telinfyResult.campaignId),
+                    status: telinfyStatusStr,
                     telinfyResponse: telinfyResult as unknown as Record<string, unknown>,
                     updatedAt: new Date(),
                 })
@@ -154,10 +176,10 @@ class CampaignService {
             return {
                 id: campaign.id,
                 name,
-                status: telinfyResult.status.toLowerCase(),
+                status: telinfyStatusStr,
                 messageCount: messages.length,
                 scheduleTime: campaignScheduleTime,
-                telinfyCampaignId: telinfyResult.campaignId,
+                telinfyCampaignId: String(telinfyResult.campaignId),
             };
         } catch (error) {
             // Update campaign with error

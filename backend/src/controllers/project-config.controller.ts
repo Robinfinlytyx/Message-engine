@@ -49,7 +49,16 @@ export async function upsertProjectConfigController(
         if (whatsapp) {
             input.whatsappEnabled = whatsapp.enabled ?? false;
             if (whatsapp.telinfyApiKey) input.telinfyApiKey = whatsapp.telinfyApiKey;
+
+            // Handle both legacy and new frontend property names
             if (whatsapp.whatsappBusinessId) input.telinfyWhatsappBusinessId = whatsapp.whatsappBusinessId;
+            if (whatsapp.telinfyWhatsappBusinessId) input.telinfyWhatsappBusinessId = whatsapp.telinfyWhatsappBusinessId;
+
+            // New Template Fields
+            if (whatsapp.telinfyAccessId) input.telinfyAccessId = whatsapp.telinfyAccessId;
+            if (whatsapp.telinfyPhoneNumberId) input.telinfyPhoneNumberId = whatsapp.telinfyPhoneNumberId;
+            if (whatsapp.telinfyUserName) input.telinfyUserName = whatsapp.telinfyUserName;
+            if (whatsapp.telinfyBusinessAccountId) input.telinfyBusinessAccountId = whatsapp.telinfyBusinessAccountId;
         }
 
         // Map Email config
@@ -80,6 +89,7 @@ export async function upsertProjectConfigController(
                 ...config,
                 // Mask secrets in response
                 telinfyApiKey: config.telinfyApiKey ? '****' + config.telinfyApiKey.slice(-4) : null,
+                telinfyAccessId: config.telinfyAccessId ? '****' : null,
                 smtpPassword: config.smtpPassword ? '****' : null,
             },
             message: 'Configuration saved successfully',
