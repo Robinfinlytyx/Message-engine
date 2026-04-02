@@ -3,7 +3,7 @@ import { whatsappTemplates } from '../db/schema/whatsapp_templates';
 import { whatsappMessages } from '../db/schema/whatsapp_messages';
 import { providerFactory } from '../providers/provider.factory';
 import { logger } from '../utils/logger';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { WhatsAppTemplate } from '../types';
 
 export class WhatsAppService {
@@ -139,13 +139,26 @@ export class WhatsAppService {
     /**
      * Get templates from local DB
      */
-    async getTemplates(projectId: string, status?: string): Promise<any[]> {
+    async getTemplates(projectId: string, status?: string, limit: number = 50, offset: number = 0) {
         const whereClause = status
             ? and(eq(whatsappTemplates.projectId, projectId), eq(whatsappTemplates.status, status))
             : eq(whatsappTemplates.projectId, projectId);
 
-        const templates = await db.select().from(whatsappTemplates).where(whereClause);
-        return templates;
+        const data = await db.select()
+            .from(whatsappTemplates)
+            .where(whereClause)
+            .orderBy(desc(whatsappTemplates.createdAt))
+            .limit(limit)
+            .offset(offset);
+
+        const [countResult] = await db.select({ count: sql<number>`count(*)` })
+            .from(whatsappTemplates)
+            .where(whereClause);
+
+        return {
+            data,
+            count: Number(countResult?.count || 0)
+        };
     }
 }
 

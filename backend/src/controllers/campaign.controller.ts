@@ -66,11 +66,12 @@ export async function listCampaignsController(
     try {
         const projectId = req.project!.id;
         const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
 
-        const campaigns = await campaignService.getCampaignsByProject(projectId, limit);
+        const campaigns = await campaignService.getCampaignsByProject(projectId, limit, offset);
 
         res.json({
-            data: campaigns.map(c => ({
+            data: campaigns.data.map(c => ({
                 id: c.id,
                 name: c.name,
                 status: c.status,
@@ -80,7 +81,7 @@ export async function listCampaignsController(
                 createdAt: c.createdAt,
                 updatedAt: c.updatedAt,
             })),
-            count: campaigns.length,
+            count: campaigns.count,
         });
     } catch (error) {
         next(error);

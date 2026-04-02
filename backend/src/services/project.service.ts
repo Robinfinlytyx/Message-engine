@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { db, schema } from '../db/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { logger } from '../utils/logger';
 
 export interface ProjectContext {
@@ -12,6 +12,7 @@ export interface ProjectContext {
 export interface CreateProjectRequest {
     name: string;
     description?: string;
+    orgId: string;
 }
 
 export interface ProjectResponse {
@@ -44,6 +45,7 @@ class ProjectService {
             name: request.name,
             description: request.description || null,
             apiKey,
+            orgId: request.orgId,
             status: 'active',
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -85,21 +87,27 @@ class ProjectService {
     }
 
     /**
-     * Get project by ID
+     * Get project by ID (scoped to org)
      */
-    async getProjectById(id: string): Promise<ProjectResponse | null> {
+    async getProjectById(id: string, orgId?: string): Promise<ProjectResponse | null> {
+        const conditions = [eq(schema.projects.id, id)];
+        if (orgId) {
+            conditions.push(eq(schema.projects.orgId, orgId));
+        }
+        
         const project = await db.query.projects.findFirst({
-            where: eq(schema.projects.id, id),
+            where: and(...conditions),
         });
 
         return project || null;
     }
 
     /**
-     * List all projects
+     * List all projects (scoped to org)
      */
-    async listProjects(): Promise<ProjectResponse[]> {
+    async listProjects(orgId?: string): Promise<ProjectResponse[]> {
         return db.query.projects.findMany({
+            where: orgId ? eq(schema.projects.orgId, orgId) : undefined,
             orderBy: (projects, { desc }) => [desc(projects.createdAt)],
         });
     }
@@ -107,14 +115,17 @@ class ProjectService {
     /**
      * Update project status (active/suspended)
      */
-    async updateProjectStatus(id: string, status: 'active' | 'suspended'): Promise<ProjectResponse | null> {
+    async updateProjectStatus(id: string, status: 'active' | 'suspended', orgId?: string): Promise<ProjectResponse | null> {
+        const conditions = [eq(schema.projects.id, id)];
+        if (orgId) conditions.push(eq(schema.projects.orgId, orgId));
+
         const [updated] = await db
             .update(schema.projects)
             .set({
                 status,
                 updatedAt: new Date(),
             })
-            .where(eq(schema.projects.id, id))
+            .where(and(...conditions))
             .returning();
 
         if (updated) {
@@ -127,8 +138,11 @@ class ProjectService {
     /**
      * Regenerate API key for a project
      */
-    async regenerateApiKey(id: string): Promise<ProjectResponse | null> {
+    async regenerateApiKey(id: string, orgId?: string): Promise<ProjectResponse | null> {
         const newApiKey = this.generateApiKey();
+        
+        const conditions = [eq(schema.projects.id, id)];
+        if (orgId) conditions.push(eq(schema.projects.orgId, orgId));
 
         const [updated] = await db
             .update(schema.projects)
@@ -136,7 +150,7 @@ class ProjectService {
                 apiKey: newApiKey,
                 updatedAt: new Date(),
             })
-            .where(eq(schema.projects.id, id))
+            .where(and(...conditions))
             .returning();
 
         if (updated) {

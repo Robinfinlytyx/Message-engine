@@ -6,10 +6,14 @@ import {
     testWhatsAppConfigController,
     testEmailConfigController,
 } from '../controllers/project-config.controller';
+import { requireAuth } from '../middleware/jwt-auth.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 
 const router = Router();
 
-// Project configuration management routes (admin)
+// Project configuration management routes
+router.use('/api/admin/projects', requireAuth, requireTenant);
+
 // Test endpoints must come before the generic :projectId/config routes
 router.post('/api/admin/projects/:projectId/config/test-whatsapp', testWhatsAppConfigController);
 router.post('/api/admin/projects/:projectId/config/test-email', testEmailConfigController);

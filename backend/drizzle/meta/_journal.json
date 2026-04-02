@@ -22,6 +22,20 @@
       "when": 1773043671655,
       "tag": "0002_nervous_dakota_north",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774676573990,
+      "tag": "0003_wet_argent",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774679121243,
+      "tag": "0004_fluffy_greymalkin",
+      "breakpoints": true
     }
   ]
 }

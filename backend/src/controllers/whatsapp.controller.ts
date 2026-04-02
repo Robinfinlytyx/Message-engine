@@ -169,8 +169,11 @@ export async function getTemplatesController(
         // req.project is set by apiKeyAuth
         const projectId = req.project!.id;
         const status = req.query.status as string | undefined;
-        const templates = await whatsAppService.getTemplates(projectId, status);
-        res.json({ data: templates });
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
+        
+        const result = await whatsAppService.getTemplates(projectId, status, limit, offset);
+        res.json(result);
     } catch (error) {
         next(error);
     }

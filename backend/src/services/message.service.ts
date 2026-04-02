@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db, schema } from '../db/db';
 import { whatsappMessages, WhatsAppMessageInsert } from '../db/schema/whatsapp_messages';
 import { messageLogs } from '../db/schema/message_logs';
-import { eq, and, sql, count } from 'drizzle-orm';
+import { eq, and, sql, count, inArray } from 'drizzle-orm';
 import { whatsappQueue } from '../queues/whatsapp.queue';
 import { logger } from '../utils/logger';
 import { MessageStatus, SendTemplateRequest, SendTemplateResponse, Channel } from '../types';
@@ -160,14 +160,16 @@ class MessageService {
      */
     async getAllMessages(params: {
         projectId?: string;
+        projectIds?: string[];
         status?: MessageStatus;
         limit?: number;
         offset?: number;
     }) {
-        const { projectId, status, limit = 50, offset = 0 } = params;
+        const { projectId, projectIds, status, limit = 50, offset = 0 } = params;
 
         const conditions = [];
         if (projectId) conditions.push(eq(whatsappMessages.projectId, projectId));
+        if (projectIds && projectIds.length > 0) conditions.push(inArray(whatsappMessages.projectId, projectIds));
         if (status) {
             // Case-insensitive comparison using LOWER()
             conditions.push(sql`LOWER(${whatsappMessages.status}) = ${status.toLowerCase()}`);

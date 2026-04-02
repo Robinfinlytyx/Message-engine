@@ -6,6 +6,9 @@ import { campaignRoutes } from './routes/campaign.routes';
 import { adminRoutes } from './routes/admin.routes';
 import { emailRoutes } from './routes/email.routes';
 import { projectConfigRoutes } from './routes/project-config.routes';
+import { authRoutes } from './routes/auth.routes';
+import { superadminRoutes } from './routes/superadmin.routes';
+import { teamRoutes } from './routes/team.routes';
 import { logger } from './utils/logger';
 
 const app = express();
@@ -38,6 +41,10 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/superadmin', superadminRoutes);
+app.use('/api/org/team', teamRoutes);
+
 app.use(projectRoutes);
 app.use(projectConfigRoutes);
 app.use('/api/admin', adminRoutes);

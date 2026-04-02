@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { messageService } from '../services/message.service';
+import { teamService } from '../services/team.service';
 import { projectService } from '../services/project.service';
 import { campaignService } from '../services/campaign.service';
 import { db } from '../db/db';
 import { whatsappMessages } from '../db/schema/whatsapp_messages';
 import { campaigns } from '../db/schema/campaigns';
 import { projects } from '../db/schema/projects';
-import { sql } from 'drizzle-orm';
+import { sql, inArray, and } from 'drizzle-orm';
 import { MessageStatus } from '../types';
 
 /**
@@ -19,13 +20,34 @@ export async function listAdminMessagesController(
     next: NextFunction
 ): Promise<void> {
     try {
+        const orgId = req.user!.orgId!;
+        const orgRole = req.user!.role || 'member';
+        
+        // Scope directly to user's assigned projects
+        const accessibleProjects = await teamService.getUserAccessibleProjects(req.user!.userId, orgId, orgRole);
+
+        if (accessibleProjects.length === 0) {
+            res.json({ data: [], count: 0 });
+            return;
+        }
+
         const projectId = req.query.projectId as string | undefined;
+        
+        if (projectId && !accessibleProjects.includes(projectId)) {
+            res.status(403).json({ error: 'Access denied: not assigned to this project' });
+            return;
+        }
+
         const limit = parseInt(req.query.limit as string) || 50;
         const offset = parseInt(req.query.offset as string) || 0;
         const status = req.query.status as MessageStatus | undefined;
 
+        // If specific projectId is requested, we use it. Otherwise, we filter by arrays of accessible projects.
+        const projectIdsToQuery = projectId ? undefined : accessibleProjects;
+
         const result = await messageService.getAllMessages({
             projectId,
+            projectIds: projectIdsToQuery,
             status,
             limit,
             offset,
@@ -47,27 +69,44 @@ export async function getDashboardStatsController(
     next: NextFunction
 ): Promise<void> {
     try {
-        // Aggregate stats using raw SQL or count queries
-        // 1. Total projects
+        const orgId = req.user!.orgId!;
+        const orgRole = req.user!.role || 'member';
+        
+        const accessibleProjects = await teamService.getUserAccessibleProjects(req.user!.userId, orgId, orgRole);
+
+        if (accessibleProjects.length === 0) {
+            res.json({
+                totalProjects: 0,
+                totalMessages: 0,
+                totalCampaigns: 0,
+                messagesLast24h: 0,
+            });
+            return;
+        }
+
+        // Aggregate stats scoped by accessible projects
         const [projectsCount] = await db
             .select({ count: sql<number>`count(*)` })
-            .from(projects);
+            .from(projects)
+            .where(inArray(projects.id, accessibleProjects));
 
-        // 2. Total messages (whatsapp)
         const [messagesCount] = await db
             .select({ count: sql<number>`count(*)` })
-            .from(whatsappMessages);
+            .from(whatsappMessages)
+            .where(inArray(whatsappMessages.projectId, accessibleProjects));
 
-        // 3. Total campaigns
         const [campaignsCount] = await db
             .select({ count: sql<number>`count(*)` })
-            .from(campaigns);
+            .from(campaigns)
+            .where(inArray(campaigns.projectId, accessibleProjects));
 
-        // 4. Messages sent in last 24h
         const [recentMessagesCount] = await db
             .select({ count: sql<number>`count(*)` })
             .from(whatsappMessages)
-            .where(sql`${whatsappMessages.createdAt} > NOW() - INTERVAL '24 hours'`);
+            .where(and(
+                inArray(whatsappMessages.projectId, accessibleProjects),
+                sql`${whatsappMessages.createdAt} > NOW() - INTERVAL '24 hours'`
+            ));
 
         res.json({
             totalProjects: Number(projectsCount.count),
@@ -90,20 +129,36 @@ export async function listAdminCampaignsController(
     next: NextFunction
 ): Promise<void> {
     try {
+        const orgId = req.user!.orgId!;
+        const orgRole = req.user!.role || 'member';
+        
+        const accessibleProjects = await teamService.getUserAccessibleProjects(req.user!.userId, orgId, orgRole);
+
+        if (accessibleProjects.length === 0) {
+            res.json({ data: [], count: 0 });
+            return;
+        }
+
         const projectId = req.query.projectId as string | undefined;
-        // const limit = parseInt(req.query.limit as string) || 50;
 
-        // Simplify for now: get all or filter by project. 
-        // We'll use a direct query since campaignService methods are specific to project context
-        // or we need to add a method to campaignService.
-        // For speed, let's use direct DB query distinct from service if service is restrictive
-        // But better to add to service. Let's assume we add getAllCampaigns to campaignService next.
-        // actually let's just use the db directly here for the admin view to avoid service bloat for now
-        // or add to service. Adding to service is cleaner.
+        if (projectId && !accessibleProjects.includes(projectId)) {
+            res.status(403).json({ error: 'Access denied: not assigned to this project' });
+            return;
+        }
 
-        const result = await campaignService.getAllCampaigns({ projectId });
+        const projectIdsToQuery = projectId ? undefined : accessibleProjects;
 
-        res.json({ data: result, count: result.length });
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        const result = await campaignService.getAllCampaigns({ 
+            projectId,
+            projectIds: projectIdsToQuery,
+            limit,
+            offset,
+        });
+
+        res.json(result);
     } catch (error) {
         next(error);
     }

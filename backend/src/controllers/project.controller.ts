@@ -18,8 +18,17 @@ export async function registerProjectController(
             res.status(400).json({ error: 'Missing required field: name' });
             return;
         }
+        
+        if (!req.user || !req.user.orgId) {
+            res.status(403).json({ error: 'Organization context required' });
+            return;
+        }
 
-        const project = await projectService.registerProject({ name, description });
+        const project = await projectService.registerProject({ 
+            name, 
+            description,
+            orgId: req.user.orgId,
+        });
 
         res.status(201).json({
             id: project.id,
@@ -49,7 +58,8 @@ export async function listProjectsController(
     next: NextFunction
 ): Promise<void> {
     try {
-        const projects = await projectService.listProjects();
+        const orgId = req.user?.orgId;
+        const projects = await projectService.listProjects(orgId);
 
         // Mask API keys for security
         const maskedProjects = projects.map(p => ({
@@ -79,7 +89,8 @@ export async function getProjectController(
 ): Promise<void> {
     try {
         const id = req.params.id as string;
-        const project = await projectService.getProjectById(id);
+        const orgId = req.user?.orgId;
+        const project = await projectService.getProjectById(id, orgId);
 
         if (!project) {
             res.status(404).json({ error: 'Project not found' });
@@ -121,7 +132,8 @@ export async function updateProjectStatusController(
             return;
         }
 
-        const project = await projectService.updateProjectStatus(id, status);
+        const orgId = req.user?.orgId;
+        const project = await projectService.updateProjectStatus(id, status, orgId);
 
         if (!project) {
             res.status(404).json({ error: 'Project not found' });
@@ -150,7 +162,8 @@ export async function getApiKeyController(
 ): Promise<void> {
     try {
         const id = req.params.id as string;
-        const project = await projectService.getProjectById(id);
+        const orgId = req.user?.orgId;
+        const project = await projectService.getProjectById(id, orgId);
 
         if (!project) {
             res.status(404).json({ error: 'Project not found' });
@@ -177,7 +190,8 @@ export async function regenerateApiKeyController(
 ): Promise<void> {
     try {
         const id = req.params.id as string;
-        const project = await projectService.regenerateApiKey(id);
+        const orgId = req.user?.orgId;
+        const project = await projectService.regenerateApiKey(id, orgId);
 
         if (!project) {
             res.status(404).json({ error: 'Project not found' });

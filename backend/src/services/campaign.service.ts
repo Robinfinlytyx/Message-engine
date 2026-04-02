@@ -1,6 +1,6 @@
 import { db } from '../db/db';
 import { campaigns, CampaignInsert } from '../db/schema/campaigns';
-import { eq } from 'drizzle-orm';
+import { eq, inArray, desc, sql } from 'drizzle-orm';
 import { providerFactory } from '../providers/provider.factory';
 import { logger } from '../utils/logger';
 
@@ -204,12 +204,22 @@ class CampaignService {
     /**
      * Get campaigns by project
      */
-    async getCampaignsByProject(projectId: string, limit: number = 50) {
-        return db.select()
+    async getCampaignsByProject(projectId: string, limit: number = 50, offset: number = 0) {
+        const data = await db.select()
             .from(campaigns)
             .where(eq(campaigns.projectId, projectId))
-            .orderBy(campaigns.createdAt)
-            .limit(limit);
+            .orderBy(desc(campaigns.createdAt))
+            .limit(limit)
+            .offset(offset);
+
+        const [countResult] = await db.select({ count: sql<number>`count(*)` })
+            .from(campaigns)
+            .where(eq(campaigns.projectId, projectId));
+
+        return {
+            data,
+            count: Number(countResult?.count || 0)
+        };
     }
 
     /**
@@ -226,21 +236,33 @@ class CampaignService {
     /**
      * Get all campaigns (admin) with filtering
      */
-    async getAllCampaigns(params: { projectId?: string; limit?: number }) {
-        const { projectId, limit = 50 } = params;
+    async getAllCampaigns(params: { projectId?: string; projectIds?: string[]; limit?: number; offset?: number }) {
+        const { projectId, projectIds, limit = 50, offset = 0 } = params;
 
+        let whereClause;
         if (projectId) {
-            return db.select()
-                .from(campaigns)
-                .where(eq(campaigns.projectId, projectId))
-                .orderBy(campaigns.createdAt)
-                .limit(limit);
-        } else {
-            return db.select()
-                .from(campaigns)
-                .orderBy(campaigns.createdAt)
-                .limit(limit);
+            whereClause = eq(campaigns.projectId, projectId);
+        } else if (projectIds && projectIds.length > 0) {
+            whereClause = inArray(campaigns.projectId, projectIds);
         }
+
+        const dataQuery = db.select().from(campaigns).orderBy(desc(campaigns.createdAt)).limit(limit).offset(offset);
+        const countQuery = db.select({ count: sql<number>`count(*)` }).from(campaigns);
+
+        if (whereClause) {
+            dataQuery.where(whereClause);
+            countQuery.where(whereClause);
+        }
+
+        const [data, [countResult]] = await Promise.all([
+            dataQuery,
+            countQuery
+        ]);
+
+        return {
+            data,
+            count: Number(countResult?.count || 0)
+        };
     }
 
     /**

@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, uuid, varchar, index } from 'drizzle-orm/pg-core';
+import { organizations } from './organizations';
 
 /**
  * Projects table for multi-project support
@@ -7,6 +8,9 @@ import { pgTable, text, timestamp, uuid, varchar, index } from 'drizzle-orm/pg-c
 export const projects = pgTable('projects', {
     // Unique project identifier
     id: uuid('id').defaultRandom().primaryKey(),
+
+    // The organization this project belongs to
+    orgId: uuid('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
 
     // Human-readable project name (must be unique)
     name: varchar('name', { length: 255 }).notNull().unique(),
@@ -28,6 +32,8 @@ export const projects = pgTable('projects', {
     apiKeyIdx: index('idx_projects_api_key').on(table.apiKey),
     // Index for status-based queries
     statusIdx: index('idx_projects_status').on(table.status),
+    // Index for org scoping
+    orgIdIdx: index('idx_projects_org_id').on(table.orgId),
 }));
 
 export type ProjectInsert = typeof projects.$inferInsert;
