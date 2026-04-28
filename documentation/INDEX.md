@@ -9,6 +9,8 @@ This engine is a **multi-channel communication platform** designed to send Whats
 ### Core Documentation
 - [Architecture Overview](ARCHITECTURE.md)
   - System Design, Database Schema, Message Queues, and Message Lifecycle
+- [Feature Catalog](FEATURES.md)
+  - Comprehensive guide to Multi-tenancy, Project Contexts, WhatsApp/Email capabilities, and UI features.
 - [Setup & Running Guide](SETUP_GUIDE.md)
   - Prerequisites, Installation, Configuration, Database Migrations, and running the server/worker processes.
 
