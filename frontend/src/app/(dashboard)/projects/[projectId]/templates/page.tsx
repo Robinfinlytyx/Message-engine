@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { api, Project } from '@/lib/api';
 import StatusBadge from '@/components/StatusBadge';
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { LayoutTemplate, RefreshCw, PlusCircle, ExternalLink, Copy, ChevronRight
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import Pagination from '@/components/Pagination';
+import TemplatePreviewDialog from '@/components/TemplatePreviewDialog';
 
 const PAGE_SIZE = 10;
 
@@ -79,10 +81,12 @@ export default function ProjectTemplatesPage({ params }: { params: Promise<{ pro
                         <RefreshCw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
                         {syncing ? 'Syncing...' : 'Sync with Meta'}
                     </Button>
-                    <Button size="sm" className="rounded-xl">
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        New Template
-                    </Button>
+                    <Link href={`/projects/${projectId}/templates/new`}>
+                        <Button size="sm" className="rounded-xl">
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            New Template
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
@@ -126,9 +130,7 @@ export default function ProjectTemplatesPage({ params }: { params: Promise<{ pro
                                 </TableCell>
                                 <TableCell className="text-center"><StatusBadge status={template.status} /></TableCell>
                                 <TableCell className="text-right whitespace-nowrap">
-                                    <Button variant="outline" size="sm" className="h-8 text-xs font-bold rounded-lg border-indigo-100 text-indigo-600 hover:bg-indigo-50">
-                                        View Content
-                                    </Button>
+                                    <TemplatePreviewDialog template={template} />
                                 </TableCell>
                             </TableRow>
                         ))}

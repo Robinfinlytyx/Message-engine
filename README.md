@@ -188,10 +188,16 @@ POST /api/sms/send
 
 ## Documentation
 
-- [WhatsApp API](./WHATSAPP_API.md) - WhatsApp & Campaign API reference
-- [Email API](./EMAIL_API.md) - Email API reference
-- [Setup Guide](./SETUP_GUIDE.md) - Installation and configuration
-- [Running Separately](./RUNNING_SEPARATELY.md) - Server + Worker guide
+All documentation has been moved to the `/documentation` directory:
+
+- [Documentation Index](./documentation/INDEX.md)
+- [Architecture Overview](./documentation/ARCHITECTURE.md)
+- [Setup & Running Guide](./documentation/SETUP_GUIDE.md)
+- [Admin API Reference](./documentation/api/ADMIN_API.md)
+- [Email API Reference](./documentation/api/EMAIL_API.md)
+- [WhatsApp API Reference](./documentation/api/WHATSAPP_API.md)
+- [Campaign API Reference](./documentation/api/CAMPAIGN_API.md)
+- [Superadmin API Reference](./documentation/api/SUPERADMIN_API.md)
 
 ## Project Structure
 

@@ -115,11 +115,12 @@ export default function CreateTemplatePage() {
     };
 
     // Helper to extract variables from text {{1}}, {{2}} etc.
-    const extractVariablesCount = (text: string) => {
-        const matches = text.match(/\{\{\d+\}\}/g);
-        if (!matches) return 0;
-        const nums = matches.map(m => parseInt(m.replace(/\{|\}/g, '')));
-        return Math.max(...nums);
+    const extractVariables = (text: string) => {
+        const matches = text.match(/\{\{(\d+)\}\}/g);
+        if (!matches) return [];
+        // Extract numbers and return unique sorted array
+        const nums = matches.map(m => parseInt(m.match(/\d+/)![0]));
+        return Array.from(new Set(nums)).sort((a, b) => a - b);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -133,40 +134,46 @@ export default function CreateTemplatePage() {
                 const processed = { ...comp };
 
                 if (processed.type === 'BODY' && processed.text) {
-                    const varCount = extractVariablesCount(processed.text);
-                    if (varCount > 0) {
+                    const vars = extractVariables(processed.text);
+                    if (vars.length > 0) {
                         // Assuming the user has provided a comma-separated bodyExample string (e.g. "John, 1234")
                         // which we parse and convert to the expected [[ "John", "1234" ]] structure
                         const exampleVals = (processed.bodyExample || '').split(',').map(s => s.trim());
+                        
                         // fill missing examples with generic strings if needed
-                        for (let i = 0; i < varCount; i++) {
-                            if (!exampleVals[i]) exampleVals[i] = `sample_${i + 1}`;
-                        }
+                        const finalVals = vars.map((v, i) => exampleVals[i] || `sample_${v}`);
+                        
                         processed.example = {
-                            bodyText: [exampleVals.slice(0, varCount)]
+                            body_text: [finalVals]
                         };
-                        // For Telinfy's typical payload, keep bodyExample as original or joined string if needed
-                        processed.bodyExample = processed.text.replace(/\{\{\d+\}\}/g, (match) => {
-                            const idx = parseInt(match.replace(/\{|\}/g, '')) - 1;
-                            return exampleVals[idx] || match;
+                        
+                        // We also need to map it correctly in some providers
+                        processed.bodyExample = processed.text.replace(/\{\{(\d+)\}\}/g, (match, p1) => {
+                            const idx = vars.indexOf(parseInt(p1));
+                            return finalVals[idx] || match;
                         });
+                    }
+                }
+
+                if (processed.type === 'HEADER' && processed.format === 'TEXT' && processed.text) {
+                    const vars = extractVariables(processed.text);
+                    if (vars.length > 0) {
+                        const exampleVals = (processed.bodyExample || '').split(',').map(s => s.trim());
+                        const finalVals = vars.map((v, i) => exampleVals[i] || `sample_${v}`);
+                        processed.example = {
+                            header_text: [finalVals[0] || 'sample_header']
+                        };
                     }
                 }
 
                 if (processed.type === 'HEADER' && processed.format && processed.format !== 'TEXT') {
                     // Make sure example structure exists for media
-                    if (!processed.example || !processed.example.headerHandle) {
+                    if (!processed.example || !processed.example.header_handle) {
                         processed.example = {
-                            headerHandle: ["https://www.example.com/sample_media"],
-                            mediaUrl: "https://www.example.com/sample_media"
-                        };
-                    } else if (typeof processed.example.headerHandle === 'string') {
-                        const url = processed.example.headerHandle;
-                        processed.example = {
-                            headerHandle: [url],
-                            mediaUrl: url
-                        };
-                    }
+                            header_handle: ["https://www.example.com/sample_media"],
+                            media_url: "https://www.example.com/sample_media"
+                        } as any;
+                    } 
                 }
 
                 return processed;
@@ -245,6 +252,7 @@ export default function CreateTemplatePage() {
                                     <option value="en_GB">English (UK)</option>
                                     <option value="es">Spanish (es)</option>
                                     <option value="ar">Arabic (ar)</option>
+                                    <option value="ml">Malayalam (ml)</option>
                                     {/* Add more as needed */}
                                 </select>
                             </div>
@@ -321,15 +329,43 @@ export default function CreateTemplatePage() {
                                             </select>
                                         </div>
                                         {comp.format === 'TEXT' ? (
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-medium">Text Content (No variables allowed)</label>
-                                                <Input
-                                                    value={comp.text || ''}
-                                                    onChange={e => updateComponent(index, { text: e.target.value })}
-                                                    placeholder="Header Text"
-                                                    maxLength={60}
-                                                />
-                                            </div>
+                                            <>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-medium flex justify-between">
+                                                        <span>Text Content</span>
+                                                        <span className="text-muted-foreground font-normal">Use {"{{1}}"} etc. for variables</span>
+                                                    </label>
+                                                    <Input
+                                                        value={comp.text || ''}
+                                                        onChange={e => updateComponent(index, { text: e.target.value })}
+                                                        placeholder="Header Text"
+                                                        maxLength={60}
+                                                    />
+                                                </div>
+                                                {extractVariables(comp.text || '').length > 0 && (
+                                                    <div className="space-y-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                                        <label className="text-[10px] font-bold uppercase tracking-tight text-indigo-700">Header Variable Examples</label>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {extractVariables(comp.text || '').map((v, i) => (
+                                                                <div key={v} className="flex flex-col gap-1">
+                                                                    <span className="text-[10px] text-slate-500">Value for {"{{" + v + "}}"}</span>
+                                                                    <Input 
+                                                                        className="h-8 text-xs bg-white"
+                                                                        placeholder={`e.g. John Doe`}
+                                                                        value={(comp.bodyExample || '').split(',')[i] || ''}
+                                                                        required
+                                                                        onChange={e => {
+                                                                            const vals = (comp.bodyExample || '').split(',').map(s => s.trim());
+                                                                            vals[i] = e.target.value;
+                                                                            updateComponent(index, { bodyExample: vals.join(', ') });
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
                                         ) : (
                                             <div className="space-y-2">
                                                 <label className="text-xs font-medium">Example Media URL (Required for approval)</label>
@@ -358,16 +394,29 @@ export default function CreateTemplatePage() {
                                                 placeholder="Hello {{1}}, your order {{2}} has been shipped."
                                             />
                                         </div>
-                                        {extractVariablesCount(comp.text || '') > 0 && (
-                                            <div className="space-y-2 p-3 bg-muted rounded-md border border-border">
-                                                <label className="text-xs font-medium text-primary">Provide Sample Values for Variables</label>
-                                                <p className="text-xs text-muted-foreground mb-2">Comma separated values for {"{{1}}, {{2}}"}, etc.</p>
-                                                <Input
-                                                    required
-                                                    value={comp.bodyExample || ''}
-                                                    onChange={e => updateComponent(index, { bodyExample: e.target.value })}
-                                                    placeholder="John, #12345"
-                                                />
+                                        {extractVariables(comp.text || '').length > 0 && (
+                                            <div className="space-y-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                                <label className="text-[10px] font-bold uppercase tracking-tight text-indigo-700">Body Variable Examples</label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {extractVariables(comp.text || '').map((v, i) => (
+                                                        <div key={v} className="flex flex-col gap-1">
+                                                            <span className="text-[10px] text-slate-500">Value for {"{{" + v + "}}"}</span>
+                                                            <Input 
+                                                                className="h-8 text-xs bg-white"
+                                                                placeholder={`Sample for ${v}`}
+                                                                value={(comp.bodyExample || '').split(',')[i] || ''}
+                                                                required
+                                                                onChange={e => {
+                                                                    const vals = (comp.bodyExample || '').split(',').map(s => s.trim());
+                                                                    // Ensure we have enough slots
+                                                                    while (vals.length <= i) vals.push('');
+                                                                    vals[i] = e.target.value;
+                                                                    updateComponent(index, { bodyExample: vals.join(', ') });
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                     </>

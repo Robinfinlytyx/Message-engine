@@ -3,11 +3,6 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Note: Using Slot requires @radix-ui/react-slot. I'll add that to install list or just use standard button for now if I don't want to install too many deps.
-// Actually, I can just use a polymorphic component approach without Radix for simplicity if desired, but Radix Slot is standard for 'asChild'.
-// For now, let's keep it simple without Radix Slot to minimize dependencies unless I add it.
-// I'll skip Slot for now and just use standard logic.
-
 const buttonVariants = cva(
     "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
     {
@@ -45,9 +40,9 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant, size, asChild = false, ...props }, ref) => {
-        // Simplified: No Slot support yet to save a package install, will just render button
+        const Comp = asChild ? Slot : "button";
         return (
-            <button
+            <Comp
                 className={cn(buttonVariants({ variant, size, className }))}
                 ref={ref}
                 {...props}

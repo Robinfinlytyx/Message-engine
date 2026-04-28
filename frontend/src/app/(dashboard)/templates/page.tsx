@@ -13,6 +13,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { Globe, RefreshCw, LayoutTemplate, Search, Copy, ExternalLink, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import Pagination from '@/components/Pagination';
+import TemplatePreviewDialog from '@/components/TemplatePreviewDialog';
 
 const PAGE_SIZE = 10;
 
@@ -214,11 +215,14 @@ export default function GlobalTemplatesPage() {
                                                     <StatusBadge status={template.status} />
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Link href={`/projects/${pt.project.id}/templates`}>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                                                            <ExternalLink className="h-4 w-4" />
-                                                        </Button>
-                                                    </Link>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <TemplatePreviewDialog template={template} />
+                                                        <Link href={`/projects/${pt.project.id}/templates`}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                                                                <ExternalLink className="h-4 w-4" />
+                                                            </Button>
+                                                        </Link>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
