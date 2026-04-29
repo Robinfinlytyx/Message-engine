@@ -61,7 +61,8 @@ export async function apiKeyAuth(
         next();
     } catch (error) {
         logger.error('Error during API key validation', {
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
+            cause: error instanceof Error && 'cause' in error ? (error as any).cause : undefined
         });
         res.status(500).json({ error: 'Internal server error' });
     }

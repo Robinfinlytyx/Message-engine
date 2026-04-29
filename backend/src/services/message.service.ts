@@ -17,6 +17,15 @@ class MessageService {
      * 5. Returns messageId
      */
     async sendTemplateMessage(request: SendTemplateRequest, projectId: string): Promise<SendTemplateResponse> {
+        // Format phone number to ensure country code
+        let formattedTo = String(request.to).replace(/[\s-]/g, '');
+        if (formattedTo.length === 10 && /^\d+$/.test(formattedTo)) {
+            formattedTo = `+91${formattedTo}`;
+        } else if (formattedTo.length === 12 && formattedTo.startsWith('91')) {
+            formattedTo = `+${formattedTo}`;
+        }
+        request.to = formattedTo;
+
         // Build the payload for Telinfy API
         const payload = {
             to: request.to,
