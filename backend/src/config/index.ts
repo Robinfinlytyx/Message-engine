@@ -72,5 +72,7 @@ export function validateConfig(): void {
     // Warn if no default Telinfy config (not fatal — projects can have their own)
     if (!process.env.TELINFY_API_KEY) {
         console.warn('⚠️  No default TELINFY_API_KEY set. Projects without their own config will fail to send WhatsApp messages.');
+    }else{
+        console.log('✅ Default Telinfy API key is set.', process.env.TELINFY_API_KEY);
     }
 }
