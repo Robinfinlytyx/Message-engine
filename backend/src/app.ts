@@ -15,7 +15,7 @@ const app = express();
 
 // CORS - allow frontend access
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://localhost:3000', 'https://finx-frontend.vercel.app','https://recov.finlytyx.com'],
+    origin: ['http://localhost:3001', 'http://localhost:3000', 'https://finx-frontend.vercel.app','https://finx.finlytyx.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-tenant-id'],
