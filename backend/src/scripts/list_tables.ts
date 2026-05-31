@@ -8,7 +8,7 @@ async function listTables() {
             FROM information_schema.tables 
             WHERE table_schema = 'public'
         `);
-        console.log('Tables:', result.map(r => r.table_name));
+        console.log('Tables:', result.rows.map((r: any) => r.table_name));
     } catch (error) {
         console.error('Error listing tables:', error);
     } finally {

@@ -26,6 +26,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@types/nodemailer": "^7.0.9",
     "axios": "^1.13.4",
     "bcryptjs": "^3.0.3",
