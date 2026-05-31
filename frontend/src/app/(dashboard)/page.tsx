@@ -79,8 +79,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row items-end md:items-center justify-between gap-6">
-        <div className="space-y-1">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+        <div className="space-y-1 flex flex-col items-center md:items-start">
           <motion.h1 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -90,7 +90,7 @@ export default function DashboardPage() {
           </motion.h1>
           <p className="text-muted-foreground font-medium">Platform performance and real-time metrics.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex justify-center gap-3 w-full md:w-auto">
           <Button variant="outline" onClick={fetchStats} className="bg-background/50 border-border/50 backdrop-blur-sm">
             Refresh Data
           </Button>

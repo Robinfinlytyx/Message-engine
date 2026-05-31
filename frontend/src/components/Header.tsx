@@ -27,14 +27,18 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import ProjectSwitcher from '@/components/ProjectSwitcher';
 
-export default function Header() {
+interface HeaderProps {
+    onMenuClick?: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
     const { user, org, logout } = useAuth();
 
     return (
         <header className="h-16 border-b border-border/50 bg-background/80 backdrop-blur-xl z-10 px-4 md:px-8 flex items-center justify-between sticky top-0">
             {/* Left side: Context Search or Mobile Menu */}
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
                     <Menu className="h-5 w-5" />
                 </Button>
                 

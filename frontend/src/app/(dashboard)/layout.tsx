@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { useAuth } from "@/lib/auth-context";
@@ -11,6 +12,7 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const { user, loading } = useAuth();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Protection logic - in a real app, you'd use middleware.tsx for faster redirects
     if (loading) {
@@ -34,14 +36,14 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden font-inter">
-            <Sidebar />
+            <Sidebar mobileOpen={sidebarOpen} setMobileOpen={setSidebarOpen} />
             
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                 {/* Background decorative elements */}
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
                 
-                <Header />
+                <Header onMenuClick={() => setSidebarOpen(true)} />
                 
                 <main className="flex-1 overflow-y-auto overflow-x-hidden relative custom-scrollbar">
                     <div className="container mx-auto p-6 md:p-8 max-w-7xl">
