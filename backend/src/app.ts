@@ -14,8 +14,27 @@ import { logger } from './utils/logger';
 const app = express();
 
 // CORS - allow frontend access
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5005',
+    'https://finx-frontend.vercel.app',
+    'https://recov.finlytyx.com',
+    'https://message-engine-qrzx.vercel.app',
+    // Allow any custom domain from env var
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
+
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://localhost:3000', 'https://finx-frontend.vercel.app','https://recov.finlytyx.com'],
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        // Allow any *.vercel.app domain
+        if (origin.endsWith('.vercel.app')) return callback(null, true);
+        // Allow explicitly listed origins
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: Origin ${origin} not allowed`));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'x-tenant-id'],
